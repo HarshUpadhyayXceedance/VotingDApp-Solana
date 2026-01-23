@@ -1,0 +1,235 @@
+/* ================================
+   GLOBAL STYLES
+   ================================ */
+
+/* ---------------- DARK THEME ---------------- */
+:root[data-theme='dark'] {
+  --background: #09090b;
+  --background-rgb: 9, 9, 11;
+  --foreground: #f8fafc;
+  --border: #27272a;
+  --input: #27272a;
+  --primary: #9945ff;
+  --primary-rgb: 153, 69, 255;
+  --primary-foreground: #ffffff;
+  --secondary: #18181b;
+  --secondary-foreground: #f8fafc;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #f8fafc;
+  --card: #0c0c0e;
+  --card-foreground: #f8fafc;
+  --success: #14f195;
+  --success-rgb: 20, 241, 149;
+  --success-foreground: #003423;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+}
+
+/* ---------------- LIGHT THEME ---------------- */
+:root[data-theme='light'] {
+  --background: #f7fbff;
+  --background-rgb: 247, 251, 255;
+  --foreground: #0b1220;
+  --border: #e2e8f0;
+  --input: #ffffff;
+  --primary: #7c3aed;
+  --primary-rgb: 124, 58, 237;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf8ff;
+  --secondary-foreground: #053145;
+  --muted: #f1f5f8;
+  --muted-foreground: #64748b;
+  --accent: #6366f1;
+  --accent-foreground: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #0b1220;
+  --success: #10b981;
+  --success-rgb: 16, 185, 129;
+  --success-foreground: #003423;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+}
+
+/* ---------------- BASE STYLES ---------------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ---------------- TYPOGRAPHY ---------------- */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---------------- BUTTON BASE ---------------- */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---------------- SCROLLBAR ---------------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ---------------- SELECTION ---------------- */
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+::-moz-selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* ---------------- UTILITIES ---------------- */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-3 {
+  gap: 0.75rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
+
+.gap-8 {
+  gap: 2rem;
+}
+
+/* ---------------- TRANSITIONS ---------------- */
+.transition-colors {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* ---------------- FOCUS STATES ---------------- */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---------------- ACCESSIBILITY ---------------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ---------------- PRINT STYLES ---------------- */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .navbar,
+  .footer,
+  button {
+    display: none;
+  }
+}

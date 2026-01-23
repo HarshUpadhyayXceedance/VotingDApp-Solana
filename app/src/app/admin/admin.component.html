@@ -1,0 +1,239 @@
+<div class="admin-dashboard">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Logo & Brand -->
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <iconify-icon icon="lucide:vote"></iconify-icon>
+      </div>
+      <span class="brand-name">SolVote Admin</span>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active">
+        <iconify-icon icon="lucide:layout-dashboard"></iconify-icon>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item">
+        <iconify-icon icon="lucide:vote"></iconify-icon>
+        <span>Elections</span>
+        <span class="badge badge-success">2 Active</span>
+      </a>
+      <a href="#" class="nav-item">
+        <iconify-icon icon="lucide:bar-chart-3"></iconify-icon>
+        <span>Results</span>
+      </a>
+      <a href="#" class="nav-item">
+        <iconify-icon icon="lucide:users"></iconify-icon>
+        <span>Voters</span>
+      </a>
+      <a href="#" class="nav-item">
+        <iconify-icon icon="lucide:settings"></iconify-icon>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <!-- Admin Wallet Info -->
+    <div class="admin-wallet" *ngIf="walletAddress">
+      <div class="wallet-avatar">
+        <iconify-icon icon="lucide:user"></iconify-icon>
+      </div>
+      <div class="wallet-info">
+        <span class="wallet-label">Admin Wallet</span>
+        <span class="wallet-address">{{ walletAddress | slice:0:4 }}...{{ walletAddress | slice:-4 }}</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header -->
+    <header class="content-header">
+      <div class="header-left">
+        <h1 class="page-title">Dashboard Overview</h1>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-refresh" (click)="refreshData()">
+          <iconify-icon icon="lucide:refresh-cw" [class.spinning]="loading"></iconify-icon>
+          <span>Refresh Data</span>
+        </button>
+        <button class="btn btn-create" (click)="openCreateElectionModal()">
+          <iconify-icon icon="lucide:plus"></iconify-icon>
+          <span>Create Election</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Grid -->
+    <section class="stats-section">
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Total Elections</span>
+          <div class="stat-icon">
+            <iconify-icon icon="lucide:file-text"></iconify-icon>
+          </div>
+        </div>
+        <div class="stat-value">{{ totalElections }}</div>
+        <div class="stat-footer">
+          <span class="stat-change neutral">
+            <iconify-icon icon="lucide:minus"></iconify-icon>
+            No change
+          </span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Active Now</span>
+          <div class="stat-icon active">
+            <iconify-icon icon="lucide:activity"></iconify-icon>
+          </div>
+        </div>
+        <div class="stat-value">{{ activeElections }}</div>
+        <div class="stat-footer">
+          <span class="stat-change success">
+            Ends in 3 days
+          </span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Candidates</span>
+          <div class="stat-icon">
+            <iconify-icon icon="lucide:users"></iconify-icon>
+          </div>
+        </div>
+        <div class="stat-value">{{ totalCandidates }}</div>
+        <div class="stat-footer">
+          <span class="stat-change success">
+            <iconify-icon icon="lucide:trending-up"></iconify-icon>
+            +12 this week
+          </span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Total Voters</span>
+          <div class="stat-icon">
+            <iconify-icon icon="lucide:users-2"></iconify-icon>
+          </div>
+        </div>
+        <div class="stat-value">{{ totalVoters.toLocaleString() }}</div>
+        <div class="stat-footer">
+          <span class="stat-change success">
+            <iconify-icon icon="lucide:trending-up"></iconify-icon>
+            +8% vs last month
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recently Closed Elections -->
+    <section class="elections-section">
+      <div class="section-header">
+        <h2 class="section-title">Recently Closed Elections</h2>
+        <button class="btn-link">View All</button>
+      </div>
+
+      <div class="elections-list">
+        <div class="election-card" *ngFor="let election of recentElections">
+          <div class="election-main">
+            <div class="election-info">
+              <h3 class="election-title">{{ election.title }}</h3>
+              <div class="election-meta">
+                <span class="election-status" [class]="election.status">{{ election.status }}</span>
+                <span class="election-date">Ended {{ election.endedAgo }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="election-stats">
+            <div class="election-stat">
+              <span class="stat-label">Total Votes</span>
+              <span class="stat-value">{{ election.totalVotes.toLocaleString() }}</span>
+            </div>
+            <div class="election-stat">
+              <span class="stat-label">Winner</span>
+              <span class="stat-value">{{ election.winner }}</span>
+            </div>
+            <button class="btn-icon">
+              <iconify-icon icon="lucide:chevron-right"></iconify-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Create Election Modal -->
+  <div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateElectionModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">Create New Election</h2>
+        <button class="btn-close" (click)="closeCreateElectionModal()">
+          <iconify-icon icon="lucide:x"></iconify-icon>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Election Title</label>
+          <input 
+            type="text" 
+            class="form-input" 
+            [(ngModel)]="electionTitle" 
+            placeholder="e.g., Foundation Council Election 2024"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description (Optional)</label>
+          <textarea 
+            class="form-textarea" 
+            rows="3" 
+            placeholder="Brief description of the election..."
+          ></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeCreateElectionModal()">Cancel</button>
+        <button class="btn btn-primary" (click)="createElection()" [disabled]="loading || !electionTitle">
+          <iconify-icon icon="lucide:plus" *ngIf="!loading"></iconify-icon>
+          <iconify-icon icon="lucide:loader-2" class="spinning" *ngIf="loading"></iconify-icon>
+          <span>{{ loading ? 'Creating...' : 'Create Election' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Candidate Modal -->
+  <div class="modal-overlay" *ngIf="showCandidateModal" (click)="closeCandidateModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">Add Candidate</h2>
+        <button class="btn-close" (click)="closeCandidateModal()">
+          <iconify-icon icon="lucide:x"></iconify-icon>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Candidate Name</label>
+          <input 
+            type="text" 
+            class="form-input" 
+            [(ngModel)]="candidateName" 
+            placeholder="Enter candidate name"
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeCandidateModal()">Cancel</button>
+        <button class="btn btn-primary" (click)="addCandidate()" [disabled]="loading || !candidateName">
+          <iconify-icon icon="lucide:user-plus" *ngIf="!loading"></iconify-icon>
+          <iconify-icon icon="lucide:loader-2" class="spinning" *ngIf="loading"></iconify-icon>
+          <span>{{ loading ? 'Adding...' : 'Add Candidate' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

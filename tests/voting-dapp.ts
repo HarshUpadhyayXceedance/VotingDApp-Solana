@@ -1,24 +1,63 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { Voting } from "../target/types/voting";
+import { VotingDapp } from "../target/types/voting_dapp";
 import { assert } from "chai";
 
-describe("voting dapp", () => {
+describe("voting dapp (hybrid admin)", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.Voting as Program<Voting>;
-  const authority = provider.wallet;
+  const program = anchor.workspace.VotingDapp as Program<VotingDapp>;
 
+  // ------------------------------------------------------------
+  // Use provider wallet to avoid Devnet airdrop issues
+  // ------------------------------------------------------------
+  const superAdmin = provider.wallet;
+  const adminKeypair = provider.wallet.payer;
+  const voterKeypair = provider.wallet.payer;
+
+  // Election & candidate
   const electionKeypair = anchor.web3.Keypair.generate();
   const candidateKeypair = anchor.web3.Keypair.generate();
 
-  it("creates an election", async () => {
-    await program.methods
-      .createElection("Student Council Election")
-      .accounts({
+  let adminPda: anchor.web3.PublicKey;
+
+  // ------------------------------------------------------------
+  // 1. Super admin adds admin
+  // ------------------------------------------------------------
+  it("adds an admin (super admin only)", async () => {
+    [adminPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("admin"), adminKeypair.publicKey.toBuffer()],
+      program.programId
+    );
+
+    await program.methods["addAdmin"]()
+      .accountsStrict({
+        superAdmin: superAdmin.publicKey,
+        admin: adminKeypair.publicKey,
+        adminAccount: adminPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    const adminAccount = await program.account.admin.fetch(adminPda);
+
+    assert.equal(
+      adminAccount.authority.toBase58(),
+      adminKeypair.publicKey.toBase58()
+    );
+  });
+
+  // ------------------------------------------------------------
+  // 2. Admin creates election
+  // ------------------------------------------------------------
+  it("admin creates an election", async () => {
+    await program.methods["createElection"]("Student Council Election")
+      .accountsStrict({
+        authority: adminKeypair.publicKey,
+        adminAccount: adminPda,
         election: electionKeypair.publicKey,
-        authority: authority.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([electionKeypair])
       .rpc();
@@ -31,12 +70,16 @@ describe("voting dapp", () => {
     assert.equal(election.isActive, true);
   });
 
-  it("adds a candidate", async () => {
-    await program.methods
-      .addCandidate("Alice")
-      .accounts({
+  // ------------------------------------------------------------
+  // 3. Admin adds candidate
+  // ------------------------------------------------------------
+  it("admin adds a candidate", async () => {
+    await program.methods["addCandidate"]("Alice")
+      .accountsStrict({
         election: electionKeypair.publicKey,
         candidate: candidateKeypair.publicKey,
+        authority: adminKeypair.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([candidateKeypair])
       .rpc();
@@ -49,13 +92,27 @@ describe("voting dapp", () => {
     assert.equal(candidate.votes.toNumber(), 0);
   });
 
-  it("casts a vote", async () => {
-    await program.methods
-      .castVote()
-      .accounts({
+  // ------------------------------------------------------------
+  // 4. Voter casts vote
+  // ------------------------------------------------------------
+  it("voter casts a vote", async () => {
+    const [voteRecordPda] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("vote"),
+          voterKeypair.publicKey.toBuffer(),
+          electionKeypair.publicKey.toBuffer(),
+        ],
+        program.programId
+      );
+
+    await program.methods["castVote"]()
+      .accountsStrict({
         election: electionKeypair.publicKey,
         candidate: candidateKeypair.publicKey,
-        voter: authority.publicKey,
+        voter: voterKeypair.publicKey,
+        voteRecord: voteRecordPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
       })
       .rpc();
 
@@ -66,14 +123,28 @@ describe("voting dapp", () => {
     assert.equal(candidate.votes.toNumber(), 1);
   });
 
+  // ------------------------------------------------------------
+  // 5. Prevent double voting
+  // ------------------------------------------------------------
   it("prevents double voting", async () => {
     try {
-      await program.methods
-        .castVote()
-        .accounts({
+      const [voteRecordPda] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("vote"),
+            voterKeypair.publicKey.toBuffer(),
+            electionKeypair.publicKey.toBuffer(),
+          ],
+          program.programId
+        );
+
+      await program.methods["castVote"]()
+        .accountsStrict({
           election: electionKeypair.publicKey,
           candidate: candidateKeypair.publicKey,
-          voter: authority.publicKey,
+          voter: voterKeypair.publicKey,
+          voteRecord: voteRecordPda,
+          systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc();
 
@@ -83,11 +154,14 @@ describe("voting dapp", () => {
     }
   });
 
-  it("closes the election", async () => {
-    await program.methods
-      .closeElection()
-      .accounts({
+  // ------------------------------------------------------------
+  // 6. Admin closes election
+  // ------------------------------------------------------------
+  it("admin closes the election", async () => {
+    await program.methods["closeElection"]()
+      .accountsStrict({
         election: electionKeypair.publicKey,
+        authority: adminKeypair.publicKey,
       })
       .rpc();
 

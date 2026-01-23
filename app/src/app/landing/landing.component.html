@@ -1,0 +1,414 @@
+<div class="landing-wrapper">
+  <!-- Animated Background -->
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-content">
+      <div class="nav-left">
+        <div class="logo-container">
+          <div class="logo-box">
+            <div class="logo-inner">
+              <iconify-icon icon="lucide:vote"></iconify-icon>
+            </div>
+          </div>
+          <span class="logo-text">SolVote</span>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Status Badge -->
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span class="status-text">Devnet</span>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="theme-toggle" (click)="toggleTheme()" aria-label="Toggle theme">
+          <iconify-icon icon="lucide:sun" class="theme-icon sun-icon"></iconify-icon>
+          <iconify-icon icon="lucide:moon" class="theme-icon moon-icon"></iconify-icon>
+        </button>
+
+        <!-- Connect Wallet Button -->
+        <button
+          class="btn btn-connect"
+          (click)="connectWallet()"
+          *ngIf="!walletAddress"
+        >
+          <iconify-icon icon="lucide:wallet"></iconify-icon>
+          <span>Connect Wallet</span>
+        </button>
+
+        <!-- Wallet Address Display -->
+<div
+  class="wallet-badge"
+  *ngIf="walletAddress"
+  (click)="disconnectWallet()"
+  title="Click to disconnect"
+>
+  <div class="wallet-avatar"></div>
+  <span class="wallet-address">
+    {{ walletAddress | slice:0:4 }}...{{ walletAddress | slice:-4 }}
+  </span>
+</div>
+
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO SECTION -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <!-- Badge -->
+      <div class="hero-badge" data-aos="fade-up">
+        <iconify-icon icon="lucide:sparkles"></iconify-icon>
+        <span>Powered by Solana Blockchain</span>
+      </div>
+
+      <!-- Main Heading -->
+      <h1 class="hero-title" data-aos="fade-up" data-aos-delay="100">
+        Democracy at the
+        <span class="gradient-text">Speed of Light</span>
+      </h1>
+
+      <!-- Subheading -->
+      <p class="hero-subtitle" data-aos="fade-up" data-aos-delay="200">
+        Experience the future of governance with lightning-fast, transparent,
+        and tamper-proof voting on the Solana blockchain.
+      </p>
+
+      <!-- CTA Buttons -->
+      <div class="hero-actions" data-aos="fade-up" data-aos-delay="300">
+        <button class="btn btn-primary" (click)="connectWallet()">
+          <iconify-icon icon="lucide:wallet"></iconify-icon>
+          <span>Get Started</span>
+        </button>
+        <button class="btn btn-secondary">
+          <iconify-icon icon="lucide:book-open"></iconify-icon>
+          <span>Documentation</span>
+        </button>
+      </div>
+
+      <!-- Trust Indicators -->
+      <div class="trust-indicators" data-aos="fade-up" data-aos-delay="400">
+        <div class="trust-item">
+          <iconify-icon icon="lucide:shield-check"></iconify-icon>
+          <span>Audited</span>
+        </div>
+        <div class="trust-item">
+          <iconify-icon icon="lucide:code-2"></iconify-icon>
+          <span>Open Source</span>
+        </div>
+        <div class="trust-item">
+          <iconify-icon icon="lucide:zap"></iconify-icon>
+          <span>400ms Blocks</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero Visual -->
+    <div class="hero-visual" data-aos="fade-left" data-aos-delay="500">
+      <div class="visual-card">
+        <div class="card-glow"></div>
+        <div class="card-content">
+          <div class="card-icon">
+            <iconify-icon icon="lucide:vote"></iconify-icon>
+          </div>
+          <div class="card-stats">
+            <div class="stat">
+              <span class="stat-value">10,247</span>
+              <span class="stat-label">Total Votes</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">99.9%</span>
+              <span class="stat-label">Uptime</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS BAR -->
+  <section class="stats-bar">
+    <div class="stats-grid">
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="100">
+        <iconify-icon icon="lucide:database"></iconify-icon>
+        <div class="stat-content">
+          <span class="stat-number">100%</span>
+          <span class="stat-text">On-Chain</span>
+        </div>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="200">
+        <iconify-icon icon="lucide:clock"></iconify-icon>
+        <div class="stat-content">
+          <span class="stat-number">400ms</span>
+          <span class="stat-text">Block Time</span>
+        </div>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="300">
+        <iconify-icon icon="lucide:coins"></iconify-icon>
+        <div class="stat-content">
+          <span class="stat-number">$0.00025</span>
+          <span class="stat-text">Per Vote</span>
+        </div>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="400">
+        <iconify-icon icon="lucide:activity"></iconify-icon>
+        <div class="stat-content">
+          <span class="stat-number">Zero</span>
+          <span class="stat-text">Downtime</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES SECTION -->
+  <section class="features-section">
+    <div class="section-header" data-aos="fade-up">
+      <h2 class="section-title">Why Choose SolVote?</h2>
+      <p class="section-subtitle">
+        Built on Solana's high-performance blockchain for unmatched speed and security
+      </p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="feature-icon">
+          <iconify-icon icon="lucide:fingerprint"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Wallet-Based Identity</h3>
+        <p class="feature-description">
+          Your wallet is your identity. No usernames, no passwords. Just connect and vote with complete privacy.
+        </p>
+      </div>
+
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="feature-icon">
+          <iconify-icon icon="lucide:zap"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Lightning Fast</h3>
+        <p class="feature-description">
+          Votes are confirmed in under a second. Experience real-time results with Solana's 400ms block times.
+        </p>
+      </div>
+
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+        <div class="feature-icon">
+          <iconify-icon icon="lucide:lock"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Immutable Records</h3>
+        <p class="feature-description">
+          Every vote is permanently recorded on-chain. No tampering, no deletion, complete transparency.
+        </p>
+      </div>
+
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="feature-icon">
+          <iconify-icon icon="lucide:shield"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Auditable & Secure</h3>
+        <p class="feature-description">
+          Open-source smart contracts audited by top security firms. Trust through transparency.
+        </p>
+      </div>
+
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="feature-icon">
+          <iconify-icon icon="lucide:coins"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Minimal Costs</h3>
+        <p class="feature-description">
+          Vote for just $0.00025 per transaction. Say goodbye to expensive governance participation.
+        </p>
+      </div>
+
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+        <div class="feature-icon">
+          <iconify-icon icon="lucide:globe"></iconify-icon>
+        </div>
+        <h3 class="feature-title">Global Access</h3>
+        <p class="feature-description">
+          Participate from anywhere in the world. No geographical restrictions, truly decentralized.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section">
+    <div class="how-content">
+      <div class="how-left">
+        <div class="section-header" data-aos="fade-right">
+          <h2 class="section-title">How It Works</h2>
+          <p class="section-subtitle">
+            Three simple steps to participate in blockchain-powered governance
+          </p>
+        </div>
+
+        <button class="btn btn-primary" data-aos="fade-right" data-aos-delay="100">
+          <iconify-icon icon="lucide:rocket"></iconify-icon>
+          <span>Start Voting</span>
+        </button>
+      </div>
+
+      <div class="how-right">
+        <div class="steps-container">
+          <div class="step-item" data-aos="fade-left" data-aos-delay="100">
+            <div class="step-number">01</div>
+            <div class="step-content">
+              <h3 class="step-title">Connect Wallet</h3>
+              <p class="step-description">
+                Use Phantom, Solflare, or any Solana wallet. No registration required.
+              </p>
+            </div>
+            <div class="step-icon">
+              <iconify-icon icon="lucide:wallet"></iconify-icon>
+            </div>
+          </div>
+
+          <div class="step-item" data-aos="fade-left" data-aos-delay="200">
+            <div class="step-number">02</div>
+            <div class="step-content">
+              <h3 class="step-title">Browse Elections</h3>
+              <p class="step-description">
+                View active proposals, candidate details, and live vote counts.
+              </p>
+            </div>
+            <div class="step-icon">
+              <iconify-icon icon="lucide:search"></iconify-icon>
+            </div>
+          </div>
+
+          <div class="step-item" data-aos="fade-left" data-aos-delay="300">
+            <div class="step-number">03</div>
+            <div class="step-content">
+              <h3 class="step-title">Cast Your Vote</h3>
+              <p class="step-description">
+                Select your choice and approve. Your vote is instantly recorded on-chain.
+              </p>
+            </div>
+            <div class="step-icon">
+              <iconify-icon icon="lucide:check-circle"></iconify-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- USE CASES -->
+  <section class="usecases-section">
+    <div class="section-header" data-aos="fade-up">
+      <h2 class="section-title">Built for Every Community</h2>
+      <p class="section-subtitle">
+        From DAOs to enterprises, SolVote powers transparent decision-making
+      </p>
+    </div>
+
+    <div class="usecases-grid">
+      <div class="usecase-card" data-aos="zoom-in" data-aos-delay="100">
+        <div class="usecase-icon">
+          <iconify-icon icon="lucide:building-2"></iconify-icon>
+        </div>
+        <h3 class="usecase-title">DAO Governance</h3>
+        <p class="usecase-description">
+          Protocol upgrades, treasury management, and strategic decisions.
+        </p>
+      </div>
+
+      <div class="usecase-card" data-aos="zoom-in" data-aos-delay="200">
+        <div class="usecase-icon">
+          <iconify-icon icon="lucide:lightbulb"></iconify-icon>
+        </div>
+        <h3 class="usecase-title">Grant Programs</h3>
+        <p class="usecase-description">
+          Community-driven funding allocation for builders and projects.
+        </p>
+      </div>
+
+      <div class="usecase-card" data-aos="zoom-in" data-aos-delay="300">
+        <div class="usecase-icon">
+          <iconify-icon icon="lucide:users"></iconify-icon>
+        </div>
+        <h3 class="usecase-title">Council Elections</h3>
+        <p class="usecase-description">
+          Elect representatives for foundations and community boards.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA SECTION -->
+  <section class="cta-section">
+    <div class="cta-content" data-aos="fade-up">
+      <h2 class="cta-title">Ready to Shape the Future?</h2>
+      <p class="cta-subtitle">
+        Join thousands of users participating in transparent, on-chain governance
+      </p>
+      <button class="btn btn-cta" (click)="connectWallet()">
+        <iconify-icon icon="lucide:rocket"></iconify-icon>
+        <span>Launch App</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="logo-container">
+            <div class="logo-box">
+              <div class="logo-inner">
+                <iconify-icon icon="lucide:vote"></iconify-icon>
+              </div>
+            </div>
+            <span class="logo-text">SolVote</span>
+          </div>
+          <p class="footer-description">
+            Decentralized voting infrastructure for the modern web. Built on Solana.
+          </p>
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4 class="footer-heading">Platform</h4>
+            <a href="#" class="footer-link">Elections</a>
+            <a href="#" class="footer-link">Results</a>
+            <a href="#" class="footer-link">Analytics</a>
+          </div>
+
+          <div class="footer-column">
+            <h4 class="footer-heading">Developers</h4>
+            <a href="#" class="footer-link">Documentation</a>
+            <a href="#" class="footer-link">GitHub</a>
+            <a href="#" class="footer-link">SDK</a>
+          </div>
+
+          <div class="footer-column">
+            <h4 class="footer-heading">Community</h4>
+            <a href="#" class="footer-link">Discord</a>
+            <a href="#" class="footer-link">Twitter</a>
+            <a href="#" class="footer-link">Blog</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span class="footer-copy">© 2024 SolVote. All rights reserved.</span>
+        <div class="footer-status">
+          <span class="status-dot"></span>
+          <span>Running on Solana Devnet</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- Iconify Script -->
+<script src="https://code.iconify.design/iconify-icon/2.0.0/iconify-icon.min.js"></script>
