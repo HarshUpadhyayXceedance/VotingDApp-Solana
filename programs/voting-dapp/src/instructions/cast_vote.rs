@@ -27,12 +27,22 @@ pub struct CastVote<'info> {
 
 pub fn cast_vote(ctx: Context<CastVote>) -> Result<()> {
     let election = &mut ctx.accounts.election;
+    let candidate = &mut ctx.accounts.candidate;
 
+    // ✅ Check election is active
     require!(election.is_active, VotingError::ElectionClosed);
 
-    ctx.accounts.candidate.votes += 1;
+    // ✅ CRITICAL FIX: Validate candidate belongs to this election
+    require!(
+        candidate.election == election.key(),
+        VotingError::Unauthorized
+    );
+
+    // Increment vote counts
+    candidate.votes += 1;
     election.total_votes += 1;
 
+    // Record the vote
     ctx.accounts.vote_record.voter = ctx.accounts.voter.key();
     ctx.accounts.vote_record.election = election.key();
 

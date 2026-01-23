@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::state::{Election, Admin};
+use crate::constants::MAX_TITLE_LENGTH;
+use crate::errors::VotingError;
 
 #[derive(Accounts)]
 pub struct CreateElection<'info> {
@@ -26,9 +28,17 @@ pub fn create_election(
     ctx: Context<CreateElection>,
     title: String,
 ) -> Result<()> {
+    // ✅ Validate title length
+    require!(
+        title.len() <= MAX_TITLE_LENGTH,
+        VotingError::TitleTooLong
+    );
+
     let election = &mut ctx.accounts.election;
     election.title = title;
     election.authority = ctx.accounts.authority.key();
     election.is_active = true;
+    election.total_votes = 0; 
+    
     Ok(())
 }

@@ -5,4 +5,4 @@ pub const MAX_NAME_LENGTH: usize = 32;
 
 
 pub const SUPER_ADMIN: Pubkey =
-    pubkey!("LssxRdEeDV3fLd4y4m3akAPfz3HApTBw9yh7TJvFFhP");
+    pubkey!("FhU7LwHToCLfhHTP9hEC1BUKW25X76t52oxEs55FwYJq");
