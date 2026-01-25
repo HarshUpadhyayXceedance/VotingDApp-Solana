@@ -16,13 +16,6 @@ interface Election {
   isActive: boolean;
 }
 
-interface Candidate {
-  publicKey: string;
-  name: string;
-  votes: number;
-  election: string;
-}
-
 @Component({
   selector: 'app-admin',
   standalone: true,
@@ -66,18 +59,38 @@ export class AdminComponent implements OnInit {
 
   async ngOnInit() {
     if (this.isBrowser) {
-      await this.ensureWalletConnected();
-      await this.refreshData();
+      // Give services time to initialize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      await this.initializeComponent();
     }
   }
 
-  // ✅ NEW: Ensure wallet is connected before doing anything
-  async ensureWalletConnected() {
+  private async initializeComponent() {
+    try {
+      // Step 1: Ensure wallet is connected
+      const walletConnected = await this.ensureWalletConnected();
+      if (!walletConnected) {
+        console.log('⚠️ Wallet not connected, waiting for manual connection');
+        return;
+      }
+
+      // Step 2: Wait a bit for wallet to fully settle
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 3: Try to load data
+      await this.refreshData();
+    } catch (error) {
+      console.error('Error initializing component:', error);
+    }
+  }
+
+  private async ensureWalletConnected(): Promise<boolean> {
     // Check if wallet is already connected
     if (this.wallet.isConnected()) {
       this.walletAddress = this.wallet.publicKey?.toString() || null;
       console.log('✅ Wallet already connected:', this.walletAddress);
-      return;
+      return true;
     }
 
     // Try auto-connect
@@ -86,14 +99,13 @@ export class AdminComponent implements OnInit {
       if (address) {
         this.walletAddress = address;
         console.log('✅ Auto-connected wallet:', address);
-        return;
+        return true;
       }
     } catch (e) {
       console.log('Auto-connect failed, manual connection required');
     }
 
-    // If still not connected, prompt user
-    this.showNotification('Please connect your wallet to continue', 'info');
+    return false;
   }
 
   async connectWallet() {
@@ -102,6 +114,11 @@ export class AdminComponent implements OnInit {
       if (address) {
         this.walletAddress = address;
         console.log('✅ Wallet connected:', address);
+        
+        // Wait for wallet to settle
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Refresh data
         await this.refreshData();
       }
     } catch (e) {
@@ -110,12 +127,7 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  // ===========================================
-  // MODAL CONTROLS
-  // ===========================================
-
   openCreateElectionModal() {
-    // Check wallet before opening modal
     if (!this.wallet.isConnected()) {
       this.showNotification('Please connect your wallet first', 'error');
       return;
@@ -129,7 +141,6 @@ export class AdminComponent implements OnInit {
   }
 
   openCandidateModal(electionPubkey?: string) {
-    // Check wallet before opening modal
     if (!this.wallet.isConnected()) {
       this.showNotification('Please connect your wallet first', 'error');
       return;
@@ -147,10 +158,6 @@ export class AdminComponent implements OnInit {
     this.selectedElectionPubkey = null;
   }
 
-  // ===========================================
-  // CREATE ELECTION - FIXED ✅
-  // ===========================================
-
   async createElection() {
     if (!this.electionTitle || this.electionTitle.trim().length === 0) {
       this.showNotification('Please enter an election title', 'error');
@@ -162,7 +169,6 @@ export class AdminComponent implements OnInit {
       return;
     }
 
-    // ✅ CRITICAL: Check wallet is still connected
     if (!this.wallet.isConnected()) {
       this.showNotification('Please connect your wallet first', 'error');
       this.closeCreateElectionModal();
@@ -172,25 +178,33 @@ export class AdminComponent implements OnInit {
     this.loading = true;
 
     try {
-      const program = await this.solana.getProgram();
+      // Get program with retry logic
+      let program = await this.solana.getProgram();
       
       if (!program) {
-        this.showNotification('Failed to initialize program. Please reconnect your wallet.', 'error');
+        console.log('Program not available, refreshing wallet state...');
+        await this.wallet.refreshWalletState();
+        await new Promise(resolve => setTimeout(resolve, 500));
+        program = await this.solana.getProgram();
+      }
+      
+      if (!program) {
+        this.showNotification(
+          'Failed to initialize blockchain connection. Please refresh the page and try again.',
+          'error'
+        );
         this.loading = false;
         return;
       }
 
-      // Verify wallet is in program provider
       if (!program.provider.publicKey) {
         this.showNotification('Wallet not found in program provider. Please reconnect.', 'error');
         this.loading = false;
         return;
       }
 
-      // ✅ Generate new election keypair
       const electionKeypair = Keypair.generate();
 
-      // ✅ Derive admin PDA
       const [adminPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('admin'), program.provider.publicKey.toBuffer()],
         program.programId
@@ -201,7 +215,6 @@ export class AdminComponent implements OnInit {
       console.log('Election Pubkey:', electionKeypair.publicKey.toString());
       console.log('Admin PDA:', adminPda.toString());
 
-      // ✅ Call create_election instruction with proper accounts
       const tx = await program.methods
         .createElection(this.electionTitle.trim())
         .accountsStrict({
@@ -224,23 +237,24 @@ export class AdminComponent implements OnInit {
       this.electionTitle = '';
       this.closeCreateElectionModal();
       
-      // Refresh data after 2 seconds (wait for confirmation)
       setTimeout(() => this.refreshData(), 2000);
 
     } catch (e: any) {
       console.error('Error creating election:', e);
       
-      // Parse error message
       let errorMsg = 'Failed to create election';
       
       if (e.message?.includes('TitleTooLong')) {
         errorMsg = 'Title is too long (max 64 characters)';
-      } else if (e.message?.includes('Unauthorized')) {
-        errorMsg = 'You are not authorized to create elections. Make sure you are an admin.';
+      } else if (e.message?.includes('Unauthorized') || e.message?.includes('0x7d6')) {
+        errorMsg = 'You are not authorized. Please ensure:\n\n' +
+                  '1. You are using the SUPER_ADMIN wallet, OR\n' +
+                  '2. Your wallet has been added as an admin\n\n' +
+                  'Current wallet: ' + (this.walletAddress || 'not connected');
       } else if (e.message?.includes('User rejected')) {
         errorMsg = 'Transaction was rejected';
       } else if (e.message?.includes('0x1')) {
-        errorMsg = 'Insufficient funds. Please ensure you have enough SOL for the transaction.';
+        errorMsg = 'Insufficient funds. Please ensure you have enough SOL.';
       } else if (e.logs) {
         console.error('Transaction logs:', e.logs);
         errorMsg = 'Transaction failed. Check console for details.';
@@ -253,10 +267,6 @@ export class AdminComponent implements OnInit {
 
     this.loading = false;
   }
-
-  // ===========================================
-  // ADD CANDIDATE - FIXED ✅
-  // ===========================================
 
   async addCandidate() {
     if (!this.candidateName || this.candidateName.trim().length === 0) {
@@ -274,7 +284,6 @@ export class AdminComponent implements OnInit {
       return;
     }
 
-    // ✅ CRITICAL: Check wallet is still connected
     if (!this.wallet.isConnected()) {
       this.showNotification('Please connect your wallet first', 'error');
       this.closeCandidateModal();
@@ -292,17 +301,13 @@ export class AdminComponent implements OnInit {
         return;
       }
 
-      // ✅ Generate new candidate keypair
       const candidateKeypair = Keypair.generate();
-
-      // ✅ Get election public key
       const electionPubkey = new PublicKey(this.selectedElectionPubkey);
 
       console.log('Adding candidate...');
       console.log('Election:', electionPubkey.toString());
       console.log('Candidate Pubkey:', candidateKeypair.publicKey.toString());
 
-      // ✅ Call add_candidate instruction with proper accounts
       const tx = await program.methods
         .addCandidate(this.candidateName.trim())
         .accountsStrict({
@@ -324,13 +329,11 @@ export class AdminComponent implements OnInit {
       this.candidateName = '';
       this.closeCandidateModal();
       
-      // Refresh data after 2 seconds
       setTimeout(() => this.refreshData(), 2000);
 
     } catch (e: any) {
       console.error('Error adding candidate:', e);
       
-      // Parse error message
       let errorMsg = 'Failed to add candidate';
       if (e.message?.includes('NameTooLong')) {
         errorMsg = 'Name is too long (max 32 characters)';
@@ -348,16 +351,11 @@ export class AdminComponent implements OnInit {
     this.loading = false;
   }
 
-  // ===========================================
-  // CLOSE ELECTION - IMPLEMENTED ✅
-  // ===========================================
-
   async closeElection(electionPubkey: string) {
     if (!confirm('Are you sure you want to close this election? This action cannot be undone.')) {
       return;
     }
 
-    // ✅ Check wallet
     if (!this.wallet.isConnected()) {
       this.showNotification('Please connect your wallet first', 'error');
       return;
@@ -378,7 +376,6 @@ export class AdminComponent implements OnInit {
 
       console.log('Closing election:', electionPublicKey.toString());
 
-      // ✅ Call close_election instruction
       const tx = await program.methods
         .closeElection()
         .accountsStrict({
@@ -391,7 +388,6 @@ export class AdminComponent implements OnInit {
 
       this.showNotification('✅ Election closed successfully!', 'success');
       
-      // Refresh data after 2 seconds
       setTimeout(() => this.refreshData(), 2000);
 
     } catch (e: any) {
@@ -412,10 +408,6 @@ export class AdminComponent implements OnInit {
     this.loading = false;
   }
 
-  // ===========================================
-  // REFRESH DATA - REAL IMPLEMENTATION ✅
-  // ===========================================
-
   async refreshData() {
     this.loading = true;
 
@@ -429,16 +421,12 @@ export class AdminComponent implements OnInit {
 
       console.log('Fetching all elections and candidates...');
 
-      // ✅ Fetch all Election accounts
       const electionAccounts = await program.account.election.all();
-      
-      // ✅ Fetch all Candidate accounts
       const candidateAccounts = await program.account.candidate.all();
 
       console.log(`Found ${electionAccounts.length} elections`);
       console.log(`Found ${candidateAccounts.length} candidates`);
 
-      // ✅ Process elections
       this.allElections = electionAccounts.map((acc: any) => ({
         publicKey: acc.publicKey.toString(),
         title: acc.account.title,
@@ -449,20 +437,16 @@ export class AdminComponent implements OnInit {
         endedAgo: acc.account.isActive ? undefined : this.calculateTimeAgo(acc.account)
       }));
 
-      // ✅ Calculate stats
       this.totalElections = this.allElections.length;
       this.activeElections = this.allElections.filter(e => e.isActive).length;
       this.totalCandidates = candidateAccounts.length;
 
-      // ✅ Get recent closed elections
       this.recentElections = this.allElections
         .filter(e => e.status === 'closed')
         .slice(0, 5);
 
-      // ✅ Get active elections for dropdown
       this.activeElectionsList = this.allElections.filter(e => e.isActive);
 
-      // ✅ Calculate total voters (count unique vote records)
       try {
         const voteRecords = await program.account.voteRecord.all();
         this.totalVoters = voteRecords.length;
@@ -471,7 +455,6 @@ export class AdminComponent implements OnInit {
         this.totalVoters = 0;
       }
 
-      // ✅ Find winner for each closed election
       for (const election of this.recentElections) {
         const electionCandidates = candidateAccounts.filter(
           (c: any) => c.account.election.toString() === election.publicKey
@@ -491,24 +474,17 @@ export class AdminComponent implements OnInit {
 
     } catch (e) {
       console.error('Error refreshing data:', e);
-      this.showNotification('Failed to refresh data', 'error');
+      // Don't show error notification on initial load
     }
 
     this.loading = false;
   }
 
-  // ===========================================
-  // HELPER FUNCTIONS
-  // ===========================================
-
   calculateTimeAgo(election: any): string {
-    // Simple placeholder - in production you'd store timestamps
     return 'recently';
   }
 
   showNotification(message: string, type: 'success' | 'error' | 'info') {
-    // Simple notification using browser alert
-    // TODO: Replace with proper toast notification system
     if (type === 'success') {
       alert(`✅ ${message}`);
     } else if (type === 'error') {
@@ -518,7 +494,6 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  // Get active elections for select dropdown
   getActiveElections(): Election[] {
     return this.activeElectionsList;
   }
