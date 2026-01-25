@@ -24,6 +24,7 @@ import { PublicKey } from '@solana/web3.js';
 export class LandingComponent implements OnInit, AfterViewInit {
   walletAddress: string | null = null;
   private isBrowser = false;
+  connecting = false;
 
   constructor(
     private walletService: WalletService,
@@ -35,13 +36,12 @@ export class LandingComponent implements OnInit, AfterViewInit {
     this.isBrowser = isPlatformBrowser(platformId);
   }
 
-ngOnInit() {
-  if (this.isBrowser && this.walletService.isConnected()) {
-    this.walletAddress =
-      this.walletService.phantom.publicKey.toString();
+  async ngOnInit() {
+    if (this.isBrowser) {
+      // Try auto-connect (if user previously connected)
+      await this.tryAutoConnect();
+    }
   }
-}
-
 
   ngAfterViewInit(): void {
     if (this.isBrowser) {
@@ -49,30 +49,70 @@ ngOnInit() {
     }
   }
 
-async connectWallet() {
-  const address = await this.walletService.connect();
-
-  if (!address) {
-    return;
+  async tryAutoConnect() {
+    try {
+      const address = await this.walletService.autoConnect();
+      if (address) {
+        this.walletAddress = address;
+        console.log('Auto-connected to wallet');
+        // Don't auto-route on auto-connect, let user click
+      }
+    } catch (error) {
+      // Silent fail for auto-connect
+      console.log('No previous connection found');
+    }
   }
 
-  // 🔥 THIS LINE WAS MISSING
-  this.walletAddress = address;
+  async connectWallet() {
+    if (this.connecting) {
+      console.log('Connection already in progress...');
+      return;
+    }
 
-  const publicKey = new PublicKey(address);
-  const role = await this.roleService.resolveRole(publicKey);
+    this.connecting = true;
 
-  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
-    this.router.navigateByUrl('/admin');
-  } else {
-    this.router.navigateByUrl('/elections');
+    try {
+      const address = await this.walletService.connect();
+
+      if (!address) {
+        console.log('Connection failed or was cancelled');
+        this.connecting = false;
+        return;
+      }
+
+      // Update UI
+      this.walletAddress = address;
+      console.log('✅ Connected:', address);
+
+      // Determine role and route
+      const publicKey = new PublicKey(address);
+      const role = await this.roleService.resolveRole(publicKey);
+
+      console.log('User role:', role);
+
+      // Route based on role
+      if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+        await this.router.navigateByUrl('/admin');
+      } else {
+        await this.router.navigateByUrl('/elections');
+      }
+
+    } catch (error) {
+      console.error('Error during connection:', error);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      this.connecting = false;
+    }
   }
-}
-
 
   async disconnectWallet() {
-    await this.walletService.disconnect();
-    this.walletAddress = null;
+    try {
+      await this.walletService.disconnect();
+      this.walletAddress = null;
+      console.log('Disconnected from wallet');
+    } catch (error) {
+      console.error('Error disconnecting:', error);
+    }
   }
 
   toggleTheme() {

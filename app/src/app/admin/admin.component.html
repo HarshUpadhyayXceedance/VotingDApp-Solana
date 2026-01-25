@@ -18,7 +18,7 @@
       <a href="#" class="nav-item">
         <iconify-icon icon="lucide:vote"></iconify-icon>
         <span>Elections</span>
-        <span class="badge badge-success">2 Active</span>
+        <span class="badge badge-success" *ngIf="activeElections > 0">{{ activeElections }} Active</span>
       </a>
       <a href="#" class="nav-item">
         <iconify-icon icon="lucide:bar-chart-3"></iconify-icon>
@@ -54,14 +54,23 @@
         <h1 class="page-title">Dashboard Overview</h1>
       </div>
       <div class="header-right">
-        <button class="btn btn-refresh" (click)="refreshData()">
-          <iconify-icon icon="lucide:refresh-cw" [class.spinning]="loading"></iconify-icon>
-          <span>Refresh Data</span>
+        <!-- Show connect button if wallet not connected -->
+        <button class="btn btn-primary" (click)="connectWallet()" *ngIf="!walletAddress">
+          <iconify-icon icon="lucide:wallet"></iconify-icon>
+          <span>Connect Wallet</span>
         </button>
-        <button class="btn btn-create" (click)="openCreateElectionModal()">
-          <iconify-icon icon="lucide:plus"></iconify-icon>
-          <span>Create Election</span>
-        </button>
+        
+        <!-- Show action buttons if wallet is connected -->
+        <ng-container *ngIf="walletAddress">
+          <button class="btn btn-refresh" (click)="refreshData()" [disabled]="loading">
+            <iconify-icon icon="lucide:refresh-cw" [class.spinning]="loading"></iconify-icon>
+            <span>Refresh Data</span>
+          </button>
+          <button class="btn btn-create" (click)="openCreateElectionModal()">
+            <iconify-icon icon="lucide:plus"></iconify-icon>
+            <span>Create Election</span>
+          </button>
+        </ng-container>
       </div>
     </header>
 
@@ -77,8 +86,8 @@
         <div class="stat-value">{{ totalElections }}</div>
         <div class="stat-footer">
           <span class="stat-change neutral">
-            <iconify-icon icon="lucide:minus"></iconify-icon>
-            No change
+            <iconify-icon icon="lucide:database"></iconify-icon>
+            On-chain data
           </span>
         </div>
       </div>
@@ -92,8 +101,12 @@
         </div>
         <div class="stat-value">{{ activeElections }}</div>
         <div class="stat-footer">
-          <span class="stat-change success">
-            Ends in 3 days
+          <span class="stat-change success" *ngIf="activeElections > 0">
+            <iconify-icon icon="lucide:zap"></iconify-icon>
+            Live voting
+          </span>
+          <span class="stat-change neutral" *ngIf="activeElections === 0">
+            No active elections
           </span>
         </div>
       </div>
@@ -108,8 +121,8 @@
         <div class="stat-value">{{ totalCandidates }}</div>
         <div class="stat-footer">
           <span class="stat-change success">
-            <iconify-icon icon="lucide:trending-up"></iconify-icon>
-            +12 this week
+            <iconify-icon icon="lucide:check-circle"></iconify-icon>
+            Registered
           </span>
         </div>
       </div>
@@ -124,15 +137,49 @@
         <div class="stat-value">{{ totalVoters.toLocaleString() }}</div>
         <div class="stat-footer">
           <span class="stat-change success">
-            <iconify-icon icon="lucide:trending-up"></iconify-icon>
-            +8% vs last month
+            <iconify-icon icon="lucide:vote"></iconify-icon>
+            Votes cast
           </span>
         </div>
       </div>
     </section>
 
+    <!-- Active Elections Section -->
+    <section class="elections-section" *ngIf="activeElectionsList.length > 0">
+      <div class="section-header">
+        <h2 class="section-title">Active Elections</h2>
+        <button class="btn-link" (click)="openCandidateModal()">Add Candidate</button>
+      </div>
+
+      <div class="elections-list">
+        <div class="election-card" *ngFor="let election of activeElectionsList">
+          <div class="election-main">
+            <div class="election-info">
+              <h3 class="election-title">{{ election.title }}</h3>
+              <div class="election-meta">
+                <span class="election-status active">{{ election.status }}</span>
+                <span class="election-date">{{ election.publicKey | slice:0:8 }}...</span>
+              </div>
+            </div>
+          </div>
+          <div class="election-stats">
+            <div class="election-stat">
+              <span class="stat-label">Total Votes</span>
+              <span class="stat-value">{{ election.totalVotes.toLocaleString() }}</span>
+            </div>
+            <button class="btn-icon" (click)="openCandidateModal(election.publicKey)" title="Add Candidate">
+              <iconify-icon icon="lucide:user-plus"></iconify-icon>
+            </button>
+            <button class="btn-icon" (click)="closeElection(election.publicKey)" title="Close Election">
+              <iconify-icon icon="lucide:lock"></iconify-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Recently Closed Elections -->
-    <section class="elections-section">
+    <section class="elections-section" *ngIf="recentElections.length > 0">
       <div class="section-header">
         <h2 class="section-title">Recently Closed Elections</h2>
         <button class="btn-link">View All</button>
@@ -144,7 +191,7 @@
             <div class="election-info">
               <h3 class="election-title">{{ election.title }}</h3>
               <div class="election-meta">
-                <span class="election-status" [class]="election.status">{{ election.status }}</span>
+                <span class="election-status closed">{{ election.status }}</span>
                 <span class="election-date">Ended {{ election.endedAgo }}</span>
               </div>
             </div>
@@ -163,6 +210,21 @@
             </button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Empty State -->
+    <section class="elections-section" *ngIf="!loading && totalElections === 0">
+      <div class="empty-state">
+        <div class="empty-icon">
+          <iconify-icon icon="lucide:inbox"></iconify-icon>
+        </div>
+        <h3 class="empty-title">No Elections Yet</h3>
+        <p class="empty-description">Create your first election to get started with SolVote.</p>
+        <button class="btn btn-primary" (click)="openCreateElectionModal()">
+          <iconify-icon icon="lucide:plus"></iconify-icon>
+          <span>Create First Election</span>
+        </button>
       </div>
     </section>
   </main>
@@ -184,7 +246,9 @@
             class="form-input" 
             [(ngModel)]="electionTitle" 
             placeholder="e.g., Foundation Council Election 2024"
+            maxlength="64"
           />
+          <span class="form-hint">{{ electionTitle.length }}/64 characters</span>
         </div>
         <div class="form-group">
           <label class="form-label">Description (Optional)</label>
@@ -217,18 +281,32 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
+          <label class="form-label">Select Election</label>
+          <select 
+            class="form-select" 
+            [(ngModel)]="selectedElectionPubkey"
+          >
+            <option [value]="null">-- Choose an election --</option>
+            <option *ngFor="let election of getActiveElections()" [value]="election.publicKey">
+              {{ election.title }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
           <label class="form-label">Candidate Name</label>
           <input 
             type="text" 
             class="form-input" 
             [(ngModel)]="candidateName" 
             placeholder="Enter candidate name"
+            maxlength="32"
           />
+          <span class="form-hint">{{ candidateName.length }}/32 characters</span>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" (click)="closeCandidateModal()">Cancel</button>
-        <button class="btn btn-primary" (click)="addCandidate()" [disabled]="loading || !candidateName">
+        <button class="btn btn-primary" (click)="addCandidate()" [disabled]="loading || !candidateName || !selectedElectionPubkey">
           <iconify-icon icon="lucide:user-plus" *ngIf="!loading"></iconify-icon>
           <iconify-icon icon="lucide:loader-2" class="spinning" *ngIf="loading"></iconify-icon>
           <span>{{ loading ? 'Adding...' : 'Add Candidate' }}</span>
