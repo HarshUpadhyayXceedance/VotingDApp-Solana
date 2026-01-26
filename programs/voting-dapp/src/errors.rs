@@ -13,7 +13,10 @@ pub enum VotingError {
 
     #[msg("Title length exceeds maximum allowed")]
     TitleTooLong,
+    
     #[msg("Candidate name length exceeds maximum allowed")]
     NameTooLong,
- 
+    
+    #[msg("Description length exceeds maximum allowed")]  
+    DescriptionTooLong,
 }

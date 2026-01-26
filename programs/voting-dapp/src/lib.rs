@@ -9,7 +9,6 @@ use instructions::*;
 
 declare_id!("2V9BTFvNVqKszMMsgFgVyLDv1LfjpCFJCn62rQvvUCVR");
 
-
 #[program]
 pub mod voting_dapp {
     use super::*;
@@ -21,8 +20,9 @@ pub mod voting_dapp {
     pub fn create_election(
         ctx: Context<CreateElection>,
         title: String,
+        description: String,  
     ) -> Result<()> {
-        instructions::create_election::create_election(ctx, title)
+        instructions::create_election::create_election(ctx, title, description)
     }
 
     pub fn add_candidate(

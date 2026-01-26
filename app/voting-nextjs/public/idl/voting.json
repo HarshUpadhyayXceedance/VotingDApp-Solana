@@ -237,6 +237,10 @@
         {
           "name": "title",
           "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
         }
       ]
     }
@@ -320,6 +324,11 @@
       "code": 6004,
       "name": "NameTooLong",
       "msg": "Candidate name length exceeds maximum allowed"
+    },
+    {
+      "code": 6005,
+      "name": "DescriptionTooLong",
+      "msg": "Description length exceeds maximum allowed"
     }
   ],
   "types": [
@@ -366,6 +375,10 @@
           },
           {
             "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "description",
             "type": "string"
           },
           {
