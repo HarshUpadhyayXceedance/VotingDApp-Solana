@@ -49,6 +49,7 @@ export default function AdminDashboard() {
 
     try {
       setLoading(true);
+      //@ts-ignore
       const electionAccounts = await program.account.election.all();
 
       const formattedElections: Election[] = electionAccounts.map((acc: any) => ({

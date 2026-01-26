@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { AnchorProvider, Program, Wallet } from '@coral-xyz/anchor';
-import idl from '@/public/idl/voting.json';
-import { PROGRAM_ID } from '@/lib/constants';
+import { AnchorProvider, Program } from '@coral-xyz/anchor';
+import IDL from '@/public/idl/voting.json';
 
 export function useProgram() {
   const { connection } = useConnection();
@@ -17,24 +16,19 @@ export function useProgram() {
       return null;
     }
 
-    // ✅ Explicit browser wallet (NOT NodeWallet)
-    const anchorWallet: Wallet = {
-      publicKey: wallet.publicKey,
-      signTransaction: wallet.signTransaction,
-      signAllTransactions: wallet.signAllTransactions,
-    };
-
+    // Create provider
     const provider = new AnchorProvider(
       connection,
-      anchorWallet,
+      wallet as any,
       { commitment: 'confirmed' }
     );
 
-    return new Program(
-      idl as any,
-      PROGRAM_ID,
+    const program = new Program(
+      IDL as any,
       provider
     );
+    
+    return program;
   }, [
     connection,
     wallet.publicKey,

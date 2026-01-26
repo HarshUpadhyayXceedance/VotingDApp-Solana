@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { WalletContextProvider } from "@/components/wallet/WalletProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "SolVote - Decentralized Voting on Solana",
   description: "Experience the future of governance with lightning-fast, transparent, and tamper-proof voting on the Solana blockchain.",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -16,11 +20,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <WalletContextProvider>
-          {children}
-        </WalletContextProvider>
+        <ThemeProvider>
+          <WalletContextProvider>
+            {children}
+          </WalletContextProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
