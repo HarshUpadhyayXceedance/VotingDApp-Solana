@@ -9,7 +9,7 @@ pub struct AdminPermissions {
 }
 
 impl AdminPermissions {
-    pub const SIZE: usize = 1 + 1 + 1 + 1;
+    pub const SIZE: usize = 1 + 1 + 1 + 1; // 4 bools
 
     pub fn full_permissions() -> Self {
         Self {
@@ -25,6 +25,24 @@ impl AdminPermissions {
             can_manage_elections: false,
             can_manage_candidates: false,
             can_manage_voters: false,
+            can_finalize_results: false,
+        }
+    }
+
+    pub fn election_manager() -> Self {
+        Self {
+            can_manage_elections: true,
+            can_manage_candidates: true,
+            can_manage_voters: false,
+            can_finalize_results: false,
+        }
+    }
+
+    pub fn voter_manager() -> Self {
+        Self {
+            can_manage_elections: false,
+            can_manage_candidates: false,
+            can_manage_voters: true,
             can_finalize_results: false,
         }
     }

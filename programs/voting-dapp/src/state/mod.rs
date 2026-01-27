@@ -1,16 +1,20 @@
-pub mod election;
-pub mod candidate;
-pub mod vote_record;
+use anchor_lang::prelude::*;
+
 pub mod admin;
+pub mod admin_permissions;
+pub mod admin_registry;
+pub mod candidate;
+pub mod election;
+pub mod vote_record;
 
-pub use election::Election;
-pub use candidate::Candidate;
-pub use vote_record::VoteRecord;
-pub use admin::Admin;
+pub use admin::*;
+pub use admin_permissions::*;
+pub use admin_registry::*;
+pub use candidate::*;
+pub use election::*;
+pub use vote_record::*;
 
-
-
-
+// ENUMS
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
 pub enum ElectionStatus {
     Draft,      // Created but not started
@@ -26,15 +30,15 @@ pub enum VoterRegistrationType {
     Whitelist,  // Only approved voters can vote
 }
 
-// ============================================
-// CANDIDATE
-// ============================================
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
+pub enum RegistrationStatus {
+    Pending,   // Waiting for approval
+    Approved,  // Approved by admin
+    Rejected,  // Rejected by admin
+    Revoked,   // Revoked after approval
+}
 
-
-// ============================================
 // VOTER REGISTRATION
-// ============================================
-
 #[account]
 pub struct VoterRegistration {
     pub election: Pubkey,              // Election
@@ -55,12 +59,4 @@ impl VoterRegistration {
         1 + 8 + // approved_at (Option<i64>)
         1 + 32 + // approved_by (Option<Pubkey>)
         1;   // bump
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
-pub enum RegistrationStatus {
-    Pending,   // Waiting for approval
-    Approved,  // Approved by admin
-    Rejected,  // Rejected by admin
-    Revoked,   // Revoked after approval
 }
