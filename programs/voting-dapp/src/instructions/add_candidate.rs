@@ -1,11 +1,11 @@
 use anchor_lang::prelude::*;
-use crate::state::{Election, Candidate};
-use crate::constants::MAX_NAME_LENGTH;
+use crate::state::{Election, Candidate, Admin};
+use crate::constants::{MAX_NAME_LENGTH, ADMIN_SEED};
 use crate::errors::VotingError;
 
 #[derive(Accounts)]
 pub struct AddCandidate<'info> {
-    #[account(mut, has_one = authority)]
+    #[account(mut)]
     pub election: Account<'info, Election>,
 
     #[account(
@@ -15,6 +15,12 @@ pub struct AddCandidate<'info> {
     )]
     pub candidate: Account<'info, Candidate>,
 
+    #[account(
+        seeds = [b"admin", authority.key().as_ref()],
+        bump
+    )]
+    pub admin_account: Account<'info, Admin>,
+
     #[account(mut)]
     pub authority: Signer<'info>,
 
@@ -22,13 +28,11 @@ pub struct AddCandidate<'info> {
 }
 
 pub fn add_candidate(ctx: Context<AddCandidate>, name: String) -> Result<()> {
-    // ✅ Validate candidate name length
     require!(
         name.len() <= MAX_NAME_LENGTH,
         VotingError::NameTooLong
     );
 
-    // ✅ Ensure election is still active (can't add candidates to closed elections)
     require!(
         ctx.accounts.election.is_active,
         VotingError::ElectionClosed
