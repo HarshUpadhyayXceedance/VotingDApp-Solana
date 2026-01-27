@@ -7,7 +7,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("5oPzFR43C9XEAXuVXsok42aq7b1LGd3KEWFJo8rwxvYE");
+declare_id!("58Quw5P7YpwDUKeRTqGALAW396WG2qKq6CDepdPTj4VA");
 
 #[program]
 pub mod voting_dapp {

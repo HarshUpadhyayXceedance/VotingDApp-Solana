@@ -1,5 +1,5 @@
 {
-  "address": "5oPzFR43C9XEAXuVXsok42aq7b1LGd3KEWFJo8rwxvYE",
+  "address": "58Quw5P7YpwDUKeRTqGALAW396WG2qKq6CDepdPTj4VA",
   "metadata": {
     "name": "voting_dapp",
     "version": "0.1.0",
@@ -21,9 +21,31 @@
       ],
       "accounts": [
         {
-          "name": "super_admin",
+          "name": "admin_registry",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "admin_account",
@@ -42,20 +64,38 @@
               },
               {
                 "kind": "account",
-                "path": "admin"
+                "path": "new_admin"
               }
             ]
           }
         },
         {
-          "name": "admin"
+          "name": "new_admin"
+        },
+        {
+          "name": "super_admin",
+          "writable": true,
+          "signer": true
         },
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "permissions",
+          "type": {
+            "defined": {
+              "name": "AdminPermissions"
+            }
+          }
+        }
+      ]
     },
     {
       "name": "add_candidate",
@@ -71,136 +111,30 @@
       ],
       "accounts": [
         {
-          "name": "election",
-          "writable": true
-        },
-        {
-          "name": "candidate",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true,
-          "relations": [
-            "election"
-          ]
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "name",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "cast_vote",
-      "discriminator": [
-        20,
-        212,
-        15,
-        189,
-        69,
-        180,
-        69,
-        151
-      ],
-      "accounts": [
-        {
-          "name": "election",
-          "writable": true
-        },
-        {
-          "name": "candidate",
-          "writable": true
-        },
-        {
-          "name": "vote_record",
-          "writable": true,
+          "name": "admin_registry",
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  118,
-                  111,
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
                   116,
-                  101
+                  114,
+                  121
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "voter"
-              },
-              {
-                "kind": "account",
-                "path": "election"
               }
             ]
           }
-        },
-        {
-          "name": "voter",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "close_election",
-      "discriminator": [
-        62,
-        216,
-        57,
-        149,
-        90,
-        21,
-        40,
-        127
-      ],
-      "accounts": [
-        {
-          "name": "election",
-          "writable": true
-        },
-        {
-          "name": "authority",
-          "signer": true,
-          "relations": [
-            "election"
-          ]
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "create_election",
-      "discriminator": [
-        190,
-        206,
-        84,
-        42,
-        83,
-        221,
-        248,
-        249
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
         },
         {
           "name": "admin_account",
@@ -226,6 +160,553 @@
         {
           "name": "election",
           "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "candidate",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  97,
+                  110,
+                  100,
+                  105,
+                  100,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election"
+              },
+              {
+                "kind": "account",
+                "path": "election.candidate_count",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "image_url",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "approve_voter_registration",
+      "discriminator": [
+        138,
+        117,
+        150,
+        207,
+        190,
+        26,
+        30,
+        151
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voter_registration",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101,
+                  114,
+                  95,
+                  114,
+                  101,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election"
+              },
+              {
+                "kind": "account",
+                "path": "voter_registration.voter",
+                "account": "VoterRegistration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_election",
+      "discriminator": [
+        28,
+        123,
+        214,
+        40,
+        38,
+        186,
+        93,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cast_vote",
+      "discriminator": [
+        20,
+        212,
+        15,
+        189,
+        69,
+        180,
+        69,
+        151
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "candidate",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  97,
+                  110,
+                  100,
+                  105,
+                  100,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election"
+              },
+              {
+                "kind": "account",
+                "path": "candidate.candidate_id",
+                "account": "Candidate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voter_registration",
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101,
+                  114,
+                  95,
+                  114,
+                  101,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election"
+              },
+              {
+                "kind": "account",
+                "path": "voter"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vote_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election"
+              },
+              {
+                "kind": "account",
+                "path": "voter"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voter",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_election",
+      "discriminator": [
+        190,
+        206,
+        84,
+        42,
+        83,
+        221,
+        248,
+        249
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "admin_registry.admin_count",
+                "account": "AdminRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
           "signer": true
         },
         {
@@ -241,6 +722,1072 @@
         {
           "name": "description",
           "type": "string"
+        },
+        {
+          "name": "start_time",
+          "type": "i64"
+        },
+        {
+          "name": "end_time",
+          "type": "i64"
+        },
+        {
+          "name": "voter_registration_type",
+          "type": {
+            "defined": {
+              "name": "VoterRegistrationType"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "deactivate_admin",
+      "discriminator": [
+        186,
+        94,
+        190,
+        12,
+        33,
+        207,
+        53,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "admin_account.authority",
+                "account": "Admin"
+              }
+            ]
+          }
+        },
+        {
+          "name": "super_admin",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "end_election",
+      "discriminator": [
+        26,
+        248,
+        92,
+        184,
+        33,
+        221,
+        94,
+        215
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "finalize_election",
+      "discriminator": [
+        175,
+        212,
+        115,
+        202,
+        87,
+        250,
+        48,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_admin_registry",
+      "discriminator": [
+        207,
+        232,
+        144,
+        162,
+        172,
+        54,
+        192,
+        9
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "super_admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "pause_system",
+      "discriminator": [
+        61,
+        33,
+        120,
+        81,
+        219,
+        224,
+        186,
+        28
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "super_admin",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "reject_voter_registration",
+      "discriminator": [
+        175,
+        105,
+        227,
+        138,
+        252,
+        91,
+        153,
+        233
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voter_registration",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101,
+                  114,
+                  95,
+                  114,
+                  101,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election"
+              },
+              {
+                "kind": "account",
+                "path": "voter_registration.voter",
+                "account": "VoterRegistration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "remove_candidate",
+      "discriminator": [
+        80,
+        165,
+        143,
+        198,
+        253,
+        168,
+        82,
+        254
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "candidate",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  97,
+                  110,
+                  100,
+                  105,
+                  100,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election"
+              },
+              {
+                "kind": "account",
+                "path": "candidate.candidate_id",
+                "account": "Candidate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "request_voter_registration",
+      "discriminator": [
+        12,
+        21,
+        180,
+        226,
+        255,
+        62,
+        53,
+        80
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voter_registration",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101,
+                  114,
+                  95,
+                  114,
+                  101,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election"
+              },
+              {
+                "kind": "account",
+                "path": "voter"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voter",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "revoke_voter_registration",
+      "discriminator": [
+        242,
+        51,
+        214,
+        138,
+        24,
+        194,
+        176,
+        64
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voter_registration",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101,
+                  114,
+                  95,
+                  114,
+                  101,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election"
+              },
+              {
+                "kind": "account",
+                "path": "voter_registration.voter",
+                "account": "VoterRegistration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "start_election",
+      "discriminator": [
+        84,
+        120,
+        181,
+        159,
+        113,
+        70,
+        98,
+        143
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "election.election_id",
+                "account": "Election"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "unpause_system",
+      "discriminator": [
+        26,
+        131,
+        200,
+        89,
+        124,
+        244,
+        140,
+        236
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "super_admin",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_admin_permissions",
+      "discriminator": [
+        104,
+        211,
+        130,
+        220,
+        129,
+        149,
+        29,
+        134
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "admin_account.authority",
+                "account": "Admin"
+              }
+            ]
+          }
+        },
+        {
+          "name": "super_admin",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "permissions",
+          "type": {
+            "defined": {
+              "name": "AdminPermissions"
+            }
+          }
         }
       ]
     }
@@ -257,6 +1804,19 @@
         73,
         4,
         65
+      ]
+    },
+    {
+      "name": "AdminRegistry",
+      "discriminator": [
+        163,
+        108,
+        201,
+        205,
+        231,
+        169,
+        240,
+        157
       ]
     },
     {
@@ -297,38 +1857,161 @@
         157,
         167
       ]
+    },
+    {
+      "name": "VoterRegistration",
+      "discriminator": [
+        51,
+        176,
+        32,
+        167,
+        187,
+        219,
+        19,
+        202
+      ]
     }
   ],
   "errors": [
     {
       "code": 6000,
-      "name": "ElectionClosed",
-      "msg": "Election is not active"
+      "name": "Unauthorized",
+      "msg": "Unauthorized access"
     },
     {
       "code": 6001,
+      "name": "SystemPaused",
+      "msg": "System is paused"
+    },
+    {
+      "code": 6002,
+      "name": "InsufficientPermissions",
+      "msg": "Insufficient permissions"
+    },
+    {
+      "code": 6003,
+      "name": "AdminAlreadyExists",
+      "msg": "Admin already exists"
+    },
+    {
+      "code": 6004,
+      "name": "AdminNotFound",
+      "msg": "Admin not found"
+    },
+    {
+      "code": 6005,
+      "name": "AdminNotActive",
+      "msg": "Admin is not active"
+    },
+    {
+      "code": 6006,
+      "name": "ElectionNotFound",
+      "msg": "Election not found"
+    },
+    {
+      "code": 6007,
+      "name": "ElectionNotActive",
+      "msg": "Election is not active"
+    },
+    {
+      "code": 6008,
+      "name": "ElectionAlreadyActive",
+      "msg": "Election is already active"
+    },
+    {
+      "code": 6009,
+      "name": "ElectionEnded",
+      "msg": "Election has ended"
+    },
+    {
+      "code": 6010,
+      "name": "ElectionCancelled",
+      "msg": "Election is cancelled"
+    },
+    {
+      "code": 6011,
+      "name": "ElectionFinalized",
+      "msg": "Election is finalized"
+    },
+    {
+      "code": 6012,
+      "name": "CannotModifyActiveElection",
+      "msg": "Cannot modify active election"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidTimeRange",
+      "msg": "Invalid time range"
+    },
+    {
+      "code": 6014,
+      "name": "CandidateNotFound",
+      "msg": "Candidate not found"
+    },
+    {
+      "code": 6015,
+      "name": "CandidateLimitReached",
+      "msg": "Candidate limit reached"
+    },
+    {
+      "code": 6016,
+      "name": "VoterNotRegistered",
+      "msg": "Voter not registered"
+    },
+    {
+      "code": 6017,
+      "name": "VoterAlreadyRegistered",
+      "msg": "Voter already registered"
+    },
+    {
+      "code": 6018,
+      "name": "RegistrationPending",
+      "msg": "Registration pending"
+    },
+    {
+      "code": 6019,
+      "name": "RegistrationRejected",
+      "msg": "Registration rejected"
+    },
+    {
+      "code": 6020,
+      "name": "RegistrationRevoked",
+      "msg": "Registration revoked"
+    },
+    {
+      "code": 6021,
       "name": "AlreadyVoted",
       "msg": "Already voted"
     },
     {
-      "code": 6002,
-      "name": "Unauthorized",
-      "msg": "Unauthorized"
+      "code": 6022,
+      "name": "InvalidCandidate",
+      "msg": "Invalid candidate"
     },
     {
-      "code": 6003,
+      "code": 6023,
       "name": "TitleTooLong",
-      "msg": "Title length exceeds maximum allowed"
+      "msg": "Title too long"
     },
     {
-      "code": 6004,
-      "name": "NameTooLong",
-      "msg": "Candidate name length exceeds maximum allowed"
-    },
-    {
-      "code": 6005,
+      "code": 6024,
       "name": "DescriptionTooLong",
-      "msg": "Description length exceeds maximum allowed"
+      "msg": "Description too long"
+    },
+    {
+      "code": 6025,
+      "name": "NameTooLong",
+      "msg": "Name too long"
+    },
+    {
+      "code": 6026,
+      "name": "ImageUrlTooLong",
+      "msg": "Image URL too long"
+    },
+    {
+      "code": 6027,
+      "name": "InvalidInput",
+      "msg": "Invalid input"
     }
   ],
   "types": [
@@ -340,6 +2023,82 @@
           {
             "name": "authority",
             "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "permissions",
+            "type": {
+              "defined": {
+                "name": "AdminPermissions"
+              }
+            }
+          },
+          {
+            "name": "added_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "added_at",
+            "type": "i64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AdminPermissions",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "can_manage_elections",
+            "type": "bool"
+          },
+          {
+            "name": "can_manage_candidates",
+            "type": "bool"
+          },
+          {
+            "name": "can_manage_voters",
+            "type": "bool"
+          },
+          {
+            "name": "can_finalize_results",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AdminRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "super_admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin_count",
+            "type": "u32"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -354,12 +2113,36 @@
             "type": "pubkey"
           },
           {
+            "name": "candidate_id",
+            "type": "u32"
+          },
+          {
             "name": "name",
             "type": "string"
           },
           {
-            "name": "votes",
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "image_url",
+            "type": "string"
+          },
+          {
+            "name": "vote_count",
             "type": "u64"
+          },
+          {
+            "name": "added_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "added_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -369,6 +2152,10 @@
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "election_id",
+            "type": "u64"
+          },
           {
             "name": "authority",
             "type": "pubkey"
@@ -382,12 +2169,83 @@
             "type": "string"
           },
           {
-            "name": "is_active",
-            "type": "bool"
+            "name": "start_time",
+            "type": "i64"
+          },
+          {
+            "name": "end_time",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "ElectionStatus"
+              }
+            }
           },
           {
             "name": "total_votes",
             "type": "u64"
+          },
+          {
+            "name": "candidate_count",
+            "type": "u32"
+          },
+          {
+            "name": "voter_registration_type",
+            "type": {
+              "defined": {
+                "name": "VoterRegistrationType"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ElectionStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Draft"
+          },
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Ended"
+          },
+          {
+            "name": "Cancelled"
+          },
+          {
+            "name": "Finalized"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegistrationStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Approved"
+          },
+          {
+            "name": "Rejected"
+          },
+          {
+            "name": "Revoked"
           }
         ]
       }
@@ -398,12 +2256,82 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "election",
+            "type": "pubkey"
+          },
+          {
             "name": "voter",
             "type": "pubkey"
           },
           {
+            "name": "candidate",
+            "type": "pubkey"
+          },
+          {
+            "name": "voted_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VoterRegistration",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
             "name": "election",
             "type": "pubkey"
+          },
+          {
+            "name": "voter",
+            "type": "pubkey"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "RegistrationStatus"
+              }
+            }
+          },
+          {
+            "name": "requested_at",
+            "type": "i64"
+          },
+          {
+            "name": "approved_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "approved_by",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VoterRegistrationType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Whitelist"
           }
         ]
       }
