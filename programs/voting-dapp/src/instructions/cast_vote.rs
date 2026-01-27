@@ -73,7 +73,7 @@ pub fn cast_vote(ctx: Context<CastVote>) -> Result<()> {
     
     // Check if election time is valid
     require!(
-        election.can_vote(clock.unix_timestamp),
+        election.status == ElectionStatus::Active,
         VotingError::ElectionNotActive
     );
     
