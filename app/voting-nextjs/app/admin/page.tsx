@@ -3,209 +3,96 @@
 import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { ADMIN_SEED } from '@/lib/constants';
-import { AdminPermissions, formatAdminPermissions } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { ElectionStatus, parseElectionStatus } from '@/lib/types';
 import {
-  AlertCircle,
-  Shield,
-  UserPlus,
-  Trash2,
-  CheckCircle2,
-  Crown,
-} from 'lucide-react';
+  getElectionStatusLabel,
+  getElectionStatusColor,
+  formatElectionTime,
+} from '@/lib/election-utils';
+import { Button } from '@/components/ui/button';
+import { CreateElectionModal } from '@/components/admin/CreateElectionModal';
+import { InitializeAdminRegistryModal } from '@/components/admin/InitializeAdminRegistryModal';
+import { Plus, Shield, AlertCircle, Calendar, Users, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
 
-export default function ManageAdminsPage() {
+export default function AdminDashboard() {
   const { publicKey } = useWallet();
   const program = useProgram();
 
-  const [admins, setAdmins] = useState<any[]>([]);
-  const [adminRegistry, setAdminRegistry] = useState<any>(null);
+  const [elections, setElections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [needsInitialization, setNeedsInitialization] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showInitModal, setShowInitModal] = useState(false);
 
-  // Add admin form
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newAdminAddress, setNewAdminAddress] = useState('');
-  const [newAdminName, setNewAdminName] = useState('');
-  const [newAdminPermissions, setNewAdminPermissions] = useState<AdminPermissions>({
-    canManageElections: false,
-    canManageCandidates: false,
-    canManageVoters: false,
-    canFinalizeResults: false,
-  });
-  const [adding, setAdding] = useState(false);
-  const [addError, setAddError] = useState('');
-  const [addSuccess, setAddSuccess] = useState(false);
-
-  const fetchAdmins = async () => {
+  const fetchData = async () => {
     if (!program || !publicKey) return;
 
     try {
       setLoading(true);
       setError('');
 
-      // Fetch admin registry
+      // Check if admin registry exists
       const [adminRegistryPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('admin_registry')],
         program.programId
       );
 
-      // @ts-ignore
-      const registry = await program.account.adminRegistry.fetch(adminRegistryPda);
-      setAdminRegistry(registry);
+      let adminRegistry;
+      try {
+        // @ts-ignore
+        adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
+      } catch (e) {
+        // Admin registry doesn't exist
+        setNeedsInitialization(true);
+        setLoading(false);
+        return;
+      }
 
-      // Fetch all admins
-      // @ts-ignore
-      const adminAccounts = await program.account.admin.all();
+      // Check if current user is admin
+      const [adminPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
+        program.programId
+      );
 
-      const adminsData = adminAccounts.map((account: any) => ({
+      try {
+        // @ts-ignore
+        const adminAccount = await program.account.admin.fetch(adminPda);
+        setIsAdmin(adminAccount.isActive);
+      } catch (e) {
+        // Check if super admin
+        setIsAdmin(publicKey.equals(adminRegistry.superAdmin));
+      }
+
+      // Fetch all elections
+      // @ts-ignore
+      const electionAccounts = await program.account.election.all();
+
+      const electionsData = electionAccounts.map((account: any) => ({
         publicKey: account.publicKey.toString(),
         ...account.account,
+        status: parseElectionStatus(account.account.status),
       }));
 
-      setAdmins(adminsData);
+      // Sort by election ID (newest first)
+      electionsData.sort((a: any, b: any) => b.electionId - a.electionId);
+
+      setElections(electionsData);
     } catch (error: any) {
-      console.error('Error fetching admins:', error);
-      setError('Failed to load admins');
+      console.error('Error fetching data:', error);
+      setError('Failed to load elections');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAdmins();
+    fetchData();
   }, [program, publicKey]);
-
-  const handleAddAdmin = async () => {
-    if (!program || !publicKey) return;
-
-    if (!newAdminAddress || !newAdminName) {
-      setAddError('Please provide address and name');
-      return;
-    }
-
-    try {
-      setAdding(true);
-      setAddError('');
-
-      const newAdminPubkey = new PublicKey(newAdminAddress);
-
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      const [superAdminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
-
-      const [newAdminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), newAdminPubkey.toBuffer()],
-        program.programId
-      );
-
-      console.log('Adding admin...');
-      console.log('New Admin Address:', newAdminAddress);
-      console.log('New Admin PDA:', newAdminPda.toString());
-      console.log('Name:', newAdminName);
-      console.log('Permissions:', newAdminPermissions);
-
-      // @ts-ignore
-      const tx = await program.methods
-        .addAdmin(newAdminName, formatAdminPermissions(newAdminPermissions))
-        .accountsStrict({
-          adminRegistry: adminRegistryPda,
-          superAdminAccount: superAdminPda,
-          newAdminAccount: newAdminPda,
-          newAdmin: newAdminPubkey,
-          superAdmin: publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
-
-      console.log('✅ Admin added:', tx);
-      setAddSuccess(true);
-
-      setTimeout(() => {
-        setNewAdminAddress('');
-        setNewAdminName('');
-        setNewAdminPermissions({
-          canManageElections: false,
-          canManageCandidates: false,
-          canManageVoters: false,
-          canFinalizeResults: false,
-        });
-        setAddSuccess(false);
-        setShowAddForm(false);
-        fetchAdmins();
-      }, 1500);
-    } catch (error: any) {
-      console.error('❌ Error adding admin:', error);
-
-      let errorMsg = 'Failed to add admin';
-
-      if (error.message?.includes('Unauthorized')) {
-        errorMsg = 'Only super admin can add admins';
-      } else if (error.message?.includes('already in use')) {
-        errorMsg = 'This admin already exists';
-      } else if (error.message?.includes('InvalidPublicKey')) {
-        errorMsg = 'Invalid wallet address';
-      } else if (error.message) {
-        errorMsg = error.message;
-      }
-
-      setAddError(errorMsg);
-    } finally {
-      setAdding(false);
-    }
-  };
-
-  const handleRemoveAdmin = async (adminAddress: string) => {
-    if (!program || !publicKey) return;
-    if (!confirm('Are you sure you want to remove this admin?')) return;
-
-    try {
-      const adminPubkey = new PublicKey(adminAddress);
-
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      const [superAdminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
-
-      const [adminToRemovePda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), adminPubkey.toBuffer()],
-        program.programId
-      );
-
-      // @ts-ignore
-      const tx = await program.methods
-        .removeAdmin()
-        .accountsStrict({
-          adminRegistry: adminRegistryPda,
-          superAdminAccount: superAdminPda,
-          adminToRemove: adminToRemovePda,
-          superAdmin: publicKey,
-        })
-        .rpc();
-
-      console.log('✅ Admin removed:', tx);
-      fetchAdmins();
-    } catch (error: any) {
-      console.error('❌ Error removing admin:', error);
-      alert(error.message || 'Failed to remove admin');
-    }
-  };
 
   if (!publicKey) {
     return (
@@ -213,7 +100,46 @@ export default function ManageAdminsPage() {
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-          <p className="text-gray-400">Please connect your wallet</p>
+          <p className="text-gray-400">Please connect your wallet to access the admin dashboard</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (needsInitialization) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center">
+          <Shield className="w-20 h-20 text-purple-400 mx-auto mb-6" />
+          <h2 className="text-3xl font-bold text-white mb-4">Setup Required</h2>
+          <p className="text-gray-400 mb-6">
+            The admin registry needs to be initialized. Click below to become the super admin.
+          </p>
+          <Button
+            onClick={() => setShowInitModal(true)}
+            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+          >
+            <Shield className="w-4 h-4 mr-2" />
+            Initialize Admin Registry
+          </Button>
+        </div>
+
+        <InitializeAdminRegistryModal
+          open={showInitModal}
+          onClose={() => setShowInitModal(false)}
+          onSuccess={fetchData}
+        />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
+          <p className="text-gray-400">You are not an admin</p>
         </div>
       </div>
     );
@@ -222,257 +148,130 @@ export default function ManageAdminsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       <div className="container mx-auto px-4 py-8">
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Manage Admins</h1>
-            <p className="text-gray-400">Add or remove system administrators</p>
+            <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
+            <p className="text-gray-400">Manage elections and view statistics</p>
           </div>
           <Button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-gradient-to-r from-purple-500 to-purple-600"
+            onClick={() => setShowCreateModal(true)}
+            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
           >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add Admin
+            <Plus className="w-4 h-4 mr-2" />
+            Create Election
           </Button>
         </div>
 
-        {/* Add Admin Form */}
-        {showAddForm && (
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6 mb-8">
-            <h2 className="text-2xl font-bold mb-6">Add New Admin</h2>
-
-            {addSuccess ? (
-              <div className="py-8 text-center">
-                <CheckCircle2 className="w-16 h-16 text-green-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">Admin Added!</h3>
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm mb-1">Total Elections</p>
+                <p className="text-3xl font-bold">{elections.length}</p>
               </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-white">
-                    Wallet Address <span className="text-red-400">*</span>
-                  </Label>
-                  <Input
-                    value={newAdminAddress}
-                    onChange={(e) => setNewAdminAddress(e.target.value)}
-                    placeholder="Enter wallet address"
-                    className="bg-gray-800 border-gray-700 text-white"
-                    disabled={adding}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-white">
-                    Name <span className="text-red-400">*</span>
-                  </Label>
-                  <Input
-                    value={newAdminName}
-                    onChange={(e) => setNewAdminName(e.target.value)}
-                    placeholder="Admin name"
-                    maxLength={50}
-                    className="bg-gray-800 border-gray-700 text-white"
-                    disabled={adding}
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-white">Permissions</Label>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="manage-elections"
-                        checked={newAdminPermissions.canManageElections}
-                        onCheckedChange={(checked) =>
-                          setNewAdminPermissions({
-                            ...newAdminPermissions,
-                            canManageElections: checked as boolean,
-                          })
-                        }
-                      />
-                      <label htmlFor="manage-elections" className="text-sm text-gray-300">
-                        Can manage elections
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="manage-candidates"
-                        checked={newAdminPermissions.canManageCandidates}
-                        onCheckedChange={(checked) =>
-                          setNewAdminPermissions({
-                            ...newAdminPermissions,
-                            canManageCandidates: checked as boolean,
-                          })
-                        }
-                      />
-                      <label htmlFor="manage-candidates" className="text-sm text-gray-300">
-                        Can manage candidates
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="manage-voters"
-                        checked={newAdminPermissions.canManageVoters}
-                        onCheckedChange={(checked) =>
-                          setNewAdminPermissions({
-                            ...newAdminPermissions,
-                            canManageVoters: checked as boolean,
-                          })
-                        }
-                      />
-                      <label htmlFor="manage-voters" className="text-sm text-gray-300">
-                        Can manage voters
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="finalize-results"
-                        checked={newAdminPermissions.canFinalizeResults}
-                        onCheckedChange={(checked) =>
-                          setNewAdminPermissions({
-                            ...newAdminPermissions,
-                            canFinalizeResults: checked as boolean,
-                          })
-                        }
-                      />
-                      <label htmlFor="finalize-results" className="text-sm text-gray-300">
-                        Can finalize results
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {addError && (
-                  <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-400">{addError}</p>
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => setShowAddForm(false)}
-                    variant="outline"
-                    disabled={adding}
-                    className="border-gray-700"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleAddAdmin}
-                    disabled={adding || !newAdminAddress || !newAdminName}
-                    className="bg-gradient-to-r from-purple-500 to-purple-600"
-                  >
-                    {adding ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                        Adding...
-                      </>
-                    ) : (
-                      'Add Admin'
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
+              <Calendar className="w-12 h-12 text-purple-400 opacity-50" />
+            </div>
           </div>
-        )}
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm mb-1">Active Elections</p>
+                <p className="text-3xl font-bold">
+                  {elections.filter((e) => e.status === ElectionStatus.Active).length}
+                </p>
+              </div>
+              <TrendingUp className="w-12 h-12 text-green-400 opacity-50" />
+            </div>
+          </div>
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm mb-1">Total Votes</p>
+                <p className="text-3xl font-bold">
+                  {elections.reduce((sum, e) => sum + e.totalVotes, 0)}
+                </p>
+              </div>
+              <Users className="w-12 h-12 text-blue-400 opacity-50" />
+            </div>
+          </div>
+        </div>
 
-        {/* Admins List */}
+        {/* Elections List */}
         <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
           <div className="p-6 border-b border-gray-700">
-            <h2 className="text-2xl font-bold">Administrators</h2>
+            <h2 className="text-2xl font-bold">Elections</h2>
           </div>
 
           {loading ? (
             <div className="p-8 text-center">
               <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto" />
-              <p className="text-gray-400 mt-4">Loading admins...</p>
+              <p className="text-gray-400 mt-4">Loading elections...</p>
             </div>
           ) : error ? (
             <div className="p-8 text-center">
               <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
               <p className="text-red-400">{error}</p>
             </div>
+          ) : elections.length === 0 ? (
+            <div className="p-8 text-center">
+              <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">No elections yet</p>
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                variant="outline"
+                className="mt-4"
+              >
+                Create Your First Election
+              </Button>
+            </div>
           ) : (
             <div className="divide-y divide-gray-700">
-              {/* Super Admin */}
-              {adminRegistry && (
-                <div className="p-6 bg-purple-500/5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Crown className="w-8 h-8 text-yellow-400" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-lg">Super Admin</h3>
-                          <span className="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
-                            Full Access
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-400 font-mono">
-                          {adminRegistry.superAdmin.toString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Regular Admins */}
-              {admins.map((admin) => (
-                <div key={admin.publicKey} className="p-6">
+              {elections.map((election) => (
+                <Link
+                  key={election.publicKey}
+                  href={`/admin/elections/${election.publicKey}`}
+                  className="block p-6 hover:bg-gray-700/30 transition-colors"
+                >
                   <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <Shield className="w-8 h-8 text-purple-400 flex-shrink-0" />
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-bold text-lg">{admin.name}</h3>
-                          {!admin.isActive && (
-                            <span className="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">
-                              Inactive
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-400 font-mono mb-3">
-                          {admin.authority.toString()}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {admin.permissions.can_manage_elections && (
-                            <span className="px-3 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
-                              Elections
-                            </span>
-                          )}
-                          {admin.permissions.can_manage_candidates && (
-                            <span className="px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">
-                              Candidates
-                            </span>
-                          )}
-                          {admin.permissions.can_manage_voters && (
-                            <span className="px-3 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
-                              Voters
-                            </span>
-                          )}
-                          {admin.permissions.can_finalize_results && (
-                            <span className="px-3 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
-                              Finalize
-                            </span>
-                          )}
-                        </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-bold">{election.title}</h3>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${getElectionStatusColor(
+                            election.status
+                          )}`}
+                        >
+                          {getElectionStatusLabel(election.status)}
+                        </span>
+                      </div>
+                      {election.description && (
+                        <p className="text-gray-400 mb-3">{election.description}</p>
+                      )}
+                      <div className="flex items-center gap-6 text-sm text-gray-400">
+                        <span>ID: {election.electionId}</span>
+                        <span>Candidates: {election.candidateCount}</span>
+                        <span>Votes: {election.totalVotes}</span>
+                      </div>
+                      <div className="flex items-center gap-6 text-sm text-gray-400 mt-2">
+                        <span>Start: {formatElectionTime(election.startTime)}</span>
+                        <span>End: {formatElectionTime(election.endTime)}</span>
                       </div>
                     </div>
-                    <Button
-                      onClick={() => handleRemoveAdmin(admin.authority.toString())}
-                      variant="destructive"
-                      size="sm"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      <CreateElectionModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={fetchData}
+      />
     </div>
   );
 }
