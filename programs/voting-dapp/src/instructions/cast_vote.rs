@@ -27,7 +27,8 @@ pub struct CastVote<'info> {
             election.key().as_ref(),
             candidate.candidate_id.to_le_bytes().as_ref()
         ],
-        bump = candidate.bump
+        bump = candidate.bump,
+        constraint = candidate.election == election.key() @ VotingError::InvalidCandidate
     )]
     pub candidate: Account<'info, Candidate>,
     
@@ -70,6 +71,12 @@ pub fn cast_vote(ctx: Context<CastVote>) -> Result<()> {
     let vote_record = &mut ctx.accounts.vote_record;
     let clock = Clock::get()?;
     
+    // Check if election time is valid
+    require!(
+        election.can_vote(clock.unix_timestamp),
+        VotingError::ElectionNotActive
+    );
+    
     // Check if election requires voter registration
     if election.voter_registration_type == VoterRegistrationType::Whitelist {
         require!(
@@ -77,12 +84,6 @@ pub fn cast_vote(ctx: Context<CastVote>) -> Result<()> {
             VotingError::VoterNotRegistered
         );
     }
-    
-    // Verify candidate belongs to this election
-    require!(
-        candidate.election == election.key(),
-        VotingError::InvalidCandidate
-    );
     
     // Record the vote
     vote_record.election = election.key();
