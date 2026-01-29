@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
 import { ADMIN_SEED } from '@/lib/constants';
 import { VoterRegistrationType, formatVoterRegistrationType } from '@/lib/types';
 import { validateElectionTimes } from '@/lib/election-utils';
@@ -85,6 +86,10 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         return;
       }
 
+      // Convert to BN for Anchor i64
+      const startTimeBN = new BN(startTimestamp);
+      const endTimeBN = new BN(endTimestamp);
+
       // Fetch admin registry to get correct election_id
       const [adminRegistryPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('admin_registry')],
@@ -122,8 +127,8 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         .createElection(
           electionTitle,
           electionDescription || '',
-          startTimestamp,
-          endTimestamp,
+          startTimeBN,  // Pass BN instead of number
+          endTimeBN,    // Pass BN instead of number
           formatVoterRegistrationType(voterRegistrationType)
         )
         .accountsStrict({

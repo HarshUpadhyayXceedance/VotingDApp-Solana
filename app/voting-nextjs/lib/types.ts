@@ -169,19 +169,39 @@ export function parseRegistrationStatus(status: any): RegistrationStatus {
  * Format ElectionStatus for backend
  */
 export function formatElectionStatus(status: ElectionStatus) {
-  return { [status]: {} };
+  // Anchor expects lowercase enum variant names
+  const variantMap = {
+    [ElectionStatus.Draft]: 'draft',
+    [ElectionStatus.Active]: 'active',
+    [ElectionStatus.Ended]: 'ended',
+    [ElectionStatus.Cancelled]: 'cancelled',
+    [ElectionStatus.Finalized]: 'finalized',
+  };
+  return { [variantMap[status]]: {} };
 }
 
 /**
  * Format VoterRegistrationType for backend
  */
 export function formatVoterRegistrationType(type: VoterRegistrationType) {
-  return { [type]: {} };
+  // Anchor expects lowercase enum variant names
+  const variantMap = {
+    [VoterRegistrationType.Open]: 'open',
+    [VoterRegistrationType.Whitelist]: 'whitelist',
+  };
+  return { [variantMap[type]]: {} };
 }
 
 /**
  * Format RegistrationStatus for backend
  */
 export function formatRegistrationStatus(status: RegistrationStatus) {
-  return { [status]: {} };
+  // Anchor expects lowercase enum variant names
+  const variantMap = {
+    [RegistrationStatus.Pending]: 'pending',
+    [RegistrationStatus.Approved]: 'approved',
+    [RegistrationStatus.Rejected]: 'rejected',
+    [RegistrationStatus.Revoked]: 'revoked',
+  };
+  return { [variantMap[status]]: {} };
 }

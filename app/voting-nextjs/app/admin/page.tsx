@@ -53,19 +53,32 @@ export default function AdminDashboard() {
         return;
       }
 
-      // Check if current user is admin
+      // Check if current user is the super admin
+      const isSuperAdmin = publicKey.equals(adminRegistry.superAdmin);
+
+      // Check if current user has an admin account
       const [adminPda] = PublicKey.findProgramAddressSync(
         [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
         program.programId
       );
 
+      let hasAdminAccount = false;
       try {
         // @ts-ignore
         const adminAccount = await program.account.admin.fetch(adminPda);
-        setIsAdmin(adminAccount.isActive);
+        hasAdminAccount = adminAccount.isActive;
       } catch (e) {
-        // Check if super admin
-        setIsAdmin(publicKey.equals(adminRegistry.superAdmin));
+        // No admin account
+        hasAdminAccount = false;
+      }
+
+      // Super admin always has access (even without admin account)
+      // Regular admins need an active admin account
+      setIsAdmin(isSuperAdmin || hasAdminAccount);
+
+      // If super admin but no admin account, show a message
+      if (isSuperAdmin && !hasAdminAccount) {
+        setError('You are the super admin but need to create an admin account for yourself. Go to "Manage Admins" and add your own wallet address.');
       }
 
       // Fetch all elections
@@ -162,6 +175,25 @@ export default function AdminDashboard() {
             Create Election
           </Button>
         </div>
+
+        {/* Warning if super admin without admin account */}
+        {error && error.includes('super admin') && (
+          <div className="mb-8 p-6 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold text-yellow-400 mb-2">Action Required</h3>
+                <p className="text-gray-300 mb-4">{error}</p>
+                <Link href="/admin/manage-admins">
+                  <Button className="bg-yellow-600 hover:bg-yellow-700">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Go to Manage Admins
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
