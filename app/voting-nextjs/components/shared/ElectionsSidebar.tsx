@@ -45,22 +45,12 @@ export function ElectionsSidebar() {
             className={`fixed left-0 top-16 bottom-0 bg-gray-900 border-r border-gray-800 transition-all duration-300 z-40 ${collapsed ? 'w-20' : 'w-64'
                 }`}
         >
-            {/* Header */}
+            {/* Header - Removed per user request */}
             <div className="p-6 border-b border-gray-800">
-                <div className="flex items-center justify-between">
-                    {!collapsed && (
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-green-400 flex items-center justify-center">
-                                <Vote className="w-6 h-6 text-white" />
-                            </div>
-                            <span className="text-xl font-bold text-white">Elections</span>
-                        </div>
-                    )}
-                    {collapsed && (
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-green-400 flex items-center justify-center mx-auto">
-                            <Vote className="w-6 h-6 text-white" />
-                        </div>
-                    )}
+                <div className="flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-green-400 flex items-center justify-center">
+                        <Vote className="w-6 h-6 text-white" />
+                    </div>
                 </div>
             </div>
 
@@ -91,8 +81,8 @@ export function ElectionsSidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                                        ? 'bg-purple-500/10 text-purple-400'
-                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                                    ? 'bg-purple-500/10 text-purple-400'
+                                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                                     } ${collapsed ? 'justify-center' : ''}`}
                                 title={collapsed ? item.name : ''}
                             >

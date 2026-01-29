@@ -7,8 +7,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     <NextThemesProvider
       attribute="class"
       defaultTheme="dark"
-      enableSystem={false} 
+      enableSystem={false}
       storageKey="solvote-theme"
+      disableTransitionOnChange
     >
       {children}
     </NextThemesProvider>

@@ -131,9 +131,9 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
           endTimeBN,    // Pass BN instead of number
           formatVoterRegistrationType(voterRegistrationType)
         )
-        .accountsStrict({
+        .accounts({
           adminRegistry: adminRegistryPda,
-          adminAccount: adminPda,
+          adminAccount: adminPda,  // This is derived from authority (current user)
           election: electionPda,
           authority: publicKey,
           systemProgram: SystemProgram.programId,
@@ -330,11 +330,10 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
                     type="button"
                     onClick={() => setVoterRegistrationType(VoterRegistrationType.Open)}
                     disabled={loading}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      voterRegistrationType === VoterRegistrationType.Open
+                    className={`p-4 rounded-lg border-2 transition-all ${voterRegistrationType === VoterRegistrationType.Open
                         ? 'border-purple-500 bg-purple-500/10'
                         : 'border-gray-700 bg-gray-800 hover:border-gray-600'
-                    }`}
+                      }`}
                   >
                     <h4 className="font-bold text-white mb-1">Open</h4>
                     <p className="text-xs text-gray-400">Anyone can vote</p>
@@ -343,11 +342,10 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
                     type="button"
                     onClick={() => setVoterRegistrationType(VoterRegistrationType.Whitelist)}
                     disabled={loading}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      voterRegistrationType === VoterRegistrationType.Whitelist
+                    className={`p-4 rounded-lg border-2 transition-all ${voterRegistrationType === VoterRegistrationType.Whitelist
                         ? 'border-purple-500 bg-purple-500/10'
                         : 'border-gray-700 bg-gray-800 hover:border-gray-600'
-                    }`}
+                      }`}
                   >
                     <h4 className="font-bold text-white mb-1">Whitelist</h4>
                     <p className="text-xs text-gray-400">Only approved voters</p>

@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
-import { ADMIN_SEED } from '@/lib/constants';
+import { ADMIN_SEED, SUPER_ADMIN } from '@/lib/constants';
 import { AdminPermissions, formatAdminPermissions } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { AppLayout } from '@/components/shared/AppLayout';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import {
   AlertCircle,
   Shield,
@@ -27,6 +29,7 @@ export default function ManageAdminsPage() {
   const [adminRegistry, setAdminRegistry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // Add admin form
   const [showAddForm, setShowAddForm] = useState(false);
@@ -58,6 +61,9 @@ export default function ManageAdminsPage() {
       // @ts-ignore
       const registry = await program.account.adminRegistry.fetch(adminRegistryPda);
       setAdminRegistry(registry);
+
+      // Check if current user is super admin
+      setIsSuperAdmin(publicKey.equals(registry.superAdmin));
 
       // Fetch all admins
       // @ts-ignore
@@ -100,11 +106,6 @@ export default function ManageAdminsPage() {
         program.programId
       );
 
-      const [superAdminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
-
       const [newAdminPda] = PublicKey.findProgramAddressSync(
         [Buffer.from(ADMIN_SEED), newAdminPubkey.toBuffer()],
         program.programId
@@ -119,10 +120,9 @@ export default function ManageAdminsPage() {
       // @ts-ignore
       const tx = await program.methods
         .addAdmin(newAdminName, formatAdminPermissions(newAdminPermissions))
-        .accountsStrict({
+        .accounts({
           adminRegistry: adminRegistryPda,
-          superAdminAccount: superAdminPda,
-          newAdminAccount: newAdminPda,
+          adminAccount: newAdminPda,
           newAdmin: newAdminPubkey,
           superAdmin: publicKey,
           systemProgram: SystemProgram.programId,
@@ -178,11 +178,6 @@ export default function ManageAdminsPage() {
         program.programId
       );
 
-      const [superAdminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
-
       const [adminToRemovePda] = PublicKey.findProgramAddressSync(
         [Buffer.from(ADMIN_SEED), adminPubkey.toBuffer()],
         program.programId
@@ -190,16 +185,15 @@ export default function ManageAdminsPage() {
 
       // @ts-ignore
       const tx = await program.methods
-        .removeAdmin()
-        .accountsStrict({
+        .deactivateAdmin()
+        .accounts({
           adminRegistry: adminRegistryPda,
-          superAdminAccount: superAdminPda,
-          adminToRemove: adminToRemovePda,
-          superAdmin: publicKey,
+          adminAccount: adminToRemovePda,
+          authority: publicKey,
         })
         .rpc();
 
-      console.log('✅ Admin removed:', tx);
+      console.log('✅ Admin deactivated:', tx);
       fetchAdmins();
     } catch (error: any) {
       console.error('❌ Error removing admin:', error);
@@ -209,19 +203,21 @@ export default function ManageAdminsPage() {
 
   if (!publicKey) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-          <p className="text-gray-400">Please connect your wallet</p>
+      <AppLayout showFooter={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
+            <p className="text-gray-400">Please connect your wallet</p>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
-      <div className="container mx-auto px-4 py-8">
+    <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
+      <div className="container mx-auto px-4 py-8 lg:ml-64">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">Manage Admins</h1>
@@ -473,6 +469,6 @@ export default function ManageAdminsPage() {
           )}
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
