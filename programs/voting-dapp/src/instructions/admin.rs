@@ -30,6 +30,7 @@ pub fn initialize_admin_registry(ctx: Context<InitializeAdminRegistry>) -> Resul
     let admin_registry = &mut ctx.accounts.admin_registry;
     admin_registry.super_admin = ctx.accounts.super_admin.key();
     admin_registry.admin_count = 0;
+    admin_registry.election_count = 0;
     admin_registry.paused = false;
     admin_registry.bump = ctx.bumps.admin_registry;
     

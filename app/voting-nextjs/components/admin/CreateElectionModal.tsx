@@ -98,7 +98,11 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
 
       // @ts-ignore
       const adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
-      const electionId = adminRegistry.adminCount;
+
+      // Use electionCount (u64) for ID. It comes as BN from Anchor.
+      // Fallback to adminCount if electionCount is missing (backward compat? No, breaking change)
+      const electionIdBN = adminRegistry.electionCount as BN || new BN(0);
+      const electionId = electionIdBN.toNumber();
 
       // Derive admin PDA
       const [adminPda] = PublicKey.findProgramAddressSync(
@@ -106,9 +110,12 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         program.programId
       );
 
-      // Derive election PDA using admin_count
+      // Derive election PDA using election_count as u64 (8 bytes, little-endian)
+      // Rust uses: seeds = [ELECTION_SEED, &admin_registry.election_count.to_le_bytes()]
+      const electionIdBuffer = electionIdBN.toArrayLike(Buffer, 'le', 8);
+
       const [electionPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('election'), Buffer.from(new Uint8Array(new BigUint64Array([BigInt(electionId)]).buffer))],
+        [Buffer.from('election'), electionIdBuffer],
         program.programId
       );
 
@@ -331,8 +338,8 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
                     onClick={() => setVoterRegistrationType(VoterRegistrationType.Open)}
                     disabled={loading}
                     className={`p-4 rounded-lg border-2 transition-all ${voterRegistrationType === VoterRegistrationType.Open
-                        ? 'border-purple-500 bg-purple-500/10'
-                        : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                      ? 'border-purple-500 bg-purple-500/10'
+                      : 'border-gray-700 bg-gray-800 hover:border-gray-600'
                       }`}
                   >
                     <h4 className="font-bold text-white mb-1">Open</h4>
@@ -343,8 +350,8 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
                     onClick={() => setVoterRegistrationType(VoterRegistrationType.Whitelist)}
                     disabled={loading}
                     className={`p-4 rounded-lg border-2 transition-all ${voterRegistrationType === VoterRegistrationType.Whitelist
-                        ? 'border-purple-500 bg-purple-500/10'
-                        : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                      ? 'border-purple-500 bg-purple-500/10'
+                      : 'border-gray-700 bg-gray-800 hover:border-gray-600'
                       }`}
                   >
                     <h4 className="font-bold text-white mb-1">Whitelist</h4>

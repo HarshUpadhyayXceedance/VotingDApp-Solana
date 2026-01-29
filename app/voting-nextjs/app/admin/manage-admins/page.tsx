@@ -19,7 +19,9 @@ import {
   Trash2,
   CheckCircle2,
   Crown,
+  AlertTriangle,
 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ManageAdminsPage() {
   const { publicKey } = useWallet();
@@ -30,20 +32,24 @@ export default function ManageAdminsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [superAdminHasAccount, setSuperAdminHasAccount] = useState(false);
 
   // Add admin form
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAdminAddress, setNewAdminAddress] = useState('');
   const [newAdminName, setNewAdminName] = useState('');
   const [newAdminPermissions, setNewAdminPermissions] = useState<AdminPermissions>({
-    canManageElections: false,
-    canManageCandidates: false,
-    canManageVoters: false,
-    canFinalizeResults: false,
+    canManageElections: true,
+    canManageCandidates: true,
+    canManageVoters: true,
+    canFinalizeResults: true,
   });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
   const [addSuccess, setAddSuccess] = useState(false);
+
+  // Check if super admin account has full permissions
+  const [superAdminPermissionsOk, setSuperAdminPermissionsOk] = useState(true);
 
   const fetchAdmins = async () => {
     if (!program || !publicKey) return;
@@ -63,7 +69,29 @@ export default function ManageAdminsPage() {
       setAdminRegistry(registry);
 
       // Check if current user is super admin
-      setIsSuperAdmin(publicKey.equals(registry.superAdmin));
+      const isSuperAdminUser = publicKey.equals(registry.superAdmin);
+      setIsSuperAdmin(isSuperAdminUser);
+
+      // Check if super admin has an admin account and validate permissions
+      if (isSuperAdminUser) {
+        const [superAdminPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
+          program.programId
+        );
+        try {
+          // @ts-ignore
+          const account = await program.account.admin.fetch(superAdminPda);
+          setSuperAdminHasAccount(true);
+
+          // Check permissions
+          const p = account.permissions;
+          const isOk = p.canManageElections && p.canManageCandidates && p.canManageVoters && p.canFinalizeResults;
+          setSuperAdminPermissionsOk(!!isOk);
+        } catch {
+          setSuperAdminHasAccount(false);
+          setSuperAdminPermissionsOk(false);
+        }
+      }
 
       // Fetch all admins
       // @ts-ignore
@@ -71,13 +99,17 @@ export default function ManageAdminsPage() {
 
       const adminsData = adminAccounts.map((account: any) => ({
         publicKey: account.publicKey.toString(),
-        ...account.account,
+        authority: account.account.authority.toString(),
+        name: account.account.name,
+        isActive: account.account.isActive ?? account.account.is_active,
+        permissions: account.account.permissions,
+        // Explicitly exclude BN fields like added_at/addedAt
       }));
 
       setAdmins(adminsData);
     } catch (error: any) {
       console.error('Error fetching admins:', error);
-      setError('Failed to load admins');
+      setError('Failed to load admins. Make sure admin registry is initialized.');
     } finally {
       setLoading(false);
     }
@@ -86,6 +118,123 @@ export default function ManageAdminsPage() {
   useEffect(() => {
     fetchAdmins();
   }, [program, publicKey]);
+
+  // Repair admin permissions
+  const handleRepairAdmin = async () => {
+    if (!program || !publicKey) return;
+
+    try {
+      setAdding(true);
+      setAddError('');
+
+      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('admin_registry')],
+        program.programId
+      );
+
+      const [adminPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
+        program.programId
+      );
+
+      console.log('Repairing admin permissions...');
+
+      const fullPermissions: AdminPermissions = {
+        canManageElections: true,
+        canManageCandidates: true,
+        canManageVoters: true,
+        canFinalizeResults: true,
+      };
+
+      // @ts-ignore
+      const tx = await program.methods
+        .updateAdminPermissions(fullPermissions) // Pass camelCase struct directly
+        .accounts({
+          adminRegistry: adminRegistryPda,
+          adminAccount: adminPda,
+          superAdmin: publicKey,
+        })
+        .rpc();
+
+      console.log('✅ Permissions repaired:', tx);
+      console.log('New Permissions Sent:', fullPermissions);
+      setAddSuccess(true);
+      setSuperAdminPermissionsOk(true);
+
+      setTimeout(() => {
+        setAddSuccess(false);
+        fetchAdmins();
+      }, 1500);
+    } catch (error: any) {
+      console.error('❌ Error repairing permissions:', error);
+      setAddError(error.message || 'Failed to repair permissions');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  // Add super admin as admin (self)
+  const handleAddSelfAsAdmin = async () => {
+    if (!program || !publicKey) return;
+
+    // If account exists but permissions are wrong, use repair instead
+    if (superAdminHasAccount && !superAdminPermissionsOk) {
+      return handleRepairAdmin();
+    }
+
+    try {
+      setAdding(true);
+      setAddError('');
+
+      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('admin_registry')],
+        program.programId
+      );
+
+      const [adminPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
+        program.programId
+      );
+
+      console.log('Adding self as admin...');
+      console.log('Admin Registry PDA:', adminRegistryPda.toString());
+      console.log('Admin PDA:', adminPda.toString());
+
+      const fullPermissions: AdminPermissions = {
+        canManageElections: true,
+        canManageCandidates: true,
+        canManageVoters: true,
+        canFinalizeResults: true,
+      };
+
+      // @ts-ignore
+      const tx = await program.methods
+        .addAdmin('Super Admin', fullPermissions) // Use camelCase directly
+        .accounts({
+          adminRegistry: adminRegistryPda,
+          adminAccount: adminPda,
+          newAdmin: publicKey,
+          superAdmin: publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      console.log('✅ Self added as admin:', tx);
+      setAddSuccess(true);
+      setSuperAdminHasAccount(true);
+      setSuperAdminPermissionsOk(true);
+
+      setTimeout(() => {
+        setAddSuccess(false);
+        fetchAdmins();
+      }, 1500);
+    } catch (error: any) {
+      console.error('❌ Error adding self as admin:', error);
+      setAddError(error.message || 'Failed to add self as admin');
+    } finally {
+      setAdding(false);
+    }
+  };
 
   const handleAddAdmin = async () => {
     if (!program || !publicKey) return;
@@ -112,6 +261,7 @@ export default function ManageAdminsPage() {
       );
 
       console.log('Adding admin...');
+      console.log('Admin Registry PDA:', adminRegistryPda.toString());
       console.log('New Admin Address:', newAdminAddress);
       console.log('New Admin PDA:', newAdminPda.toString());
       console.log('Name:', newAdminName);
@@ -119,7 +269,7 @@ export default function ManageAdminsPage() {
 
       // @ts-ignore
       const tx = await program.methods
-        .addAdmin(newAdminName, formatAdminPermissions(newAdminPermissions))
+        .addAdmin(newAdminName, newAdminPermissions) // Pass camelCase
         .accounts({
           adminRegistry: adminRegistryPda,
           adminAccount: newAdminPda,
@@ -136,10 +286,10 @@ export default function ManageAdminsPage() {
         setNewAdminAddress('');
         setNewAdminName('');
         setNewAdminPermissions({
-          canManageElections: false,
-          canManageCandidates: false,
-          canManageVoters: false,
-          canFinalizeResults: false,
+          canManageElections: true,
+          canManageCandidates: true,
+          canManageVoters: true,
+          canFinalizeResults: true,
         });
         setAddSuccess(false);
         setShowAddForm(false);
@@ -168,7 +318,7 @@ export default function ManageAdminsPage() {
 
   const handleRemoveAdmin = async (adminAddress: string) => {
     if (!program || !publicKey) return;
-    if (!confirm('Are you sure you want to remove this admin?')) return;
+    if (!confirm('Are you sure you want to deactivate this admin?')) return;
 
     try {
       const adminPubkey = new PublicKey(adminAddress);
@@ -183,21 +333,25 @@ export default function ManageAdminsPage() {
         program.programId
       );
 
+      console.log('Deactivating admin...');
+      console.log('Admin to remove:', adminAddress);
+      console.log('Admin PDA:', adminToRemovePda.toString());
+
       // @ts-ignore
       const tx = await program.methods
         .deactivateAdmin()
         .accounts({
           adminRegistry: adminRegistryPda,
           adminAccount: adminToRemovePda,
-          authority: publicKey,
+          superAdmin: publicKey,
         })
         .rpc();
 
       console.log('✅ Admin deactivated:', tx);
       fetchAdmins();
     } catch (error: any) {
-      console.error('❌ Error removing admin:', error);
-      alert(error.message || 'Failed to remove admin');
+      console.error('❌ Error deactivating admin:', error);
+      alert(error.message || 'Failed to deactivate admin');
     }
   };
 
@@ -223,14 +377,74 @@ export default function ManageAdminsPage() {
             <h1 className="text-4xl font-bold mb-2">Manage Admins</h1>
             <p className="text-gray-400">Add or remove system administrators</p>
           </div>
-          <Button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-gradient-to-r from-purple-500 to-purple-600"
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add Admin
-          </Button>
+          {isSuperAdmin && (
+            <Button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="bg-gradient-to-r from-purple-500 to-purple-600"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Admin
+            </Button>
+          )}
         </div>
+
+        {/* Super Admin Warning - Need to add self first or fix permissions */}
+        {isSuperAdmin && (!superAdminHasAccount || !superAdminPermissionsOk) && !loading && (
+          <div className="mb-8 p-6 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <div className="flex items-start gap-4">
+              <AlertTriangle className="w-8 h-8 text-yellow-400 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-yellow-400 mb-2">Action Required</h3>
+                <p className="text-gray-300 mb-4">
+                  {!superAdminHasAccount
+                    ? "You are the super admin but don't have an admin account yet. You must create an admin account for yourself to manage the platform."
+                    : "Your admin account is missing required permissions. You need to repair your account to have full access."
+                  }
+                </p>
+                <Button
+                  onClick={handleAddSelfAsAdmin}
+                  disabled={adding}
+                  className="bg-yellow-600 hover:bg-yellow-700"
+                >
+                  {adding ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                      {superAdminHasAccount ? 'Repairing Account...' : 'Creating Account...'}
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-4 h-4 mr-2" />
+                      {superAdminHasAccount ? 'Repair Admin Permissions' : 'Create My Admin Account'}
+                    </>
+                  )}
+                </Button>
+                {addError && (
+                  <p className="mt-3 text-sm text-red-400">{addError}</p>
+                )}
+                {addSuccess && (
+                  <p className="mt-3 text-sm text-green-400">
+                    {superAdminHasAccount ? '✓ Permissions repaired successfully!' : '✓ Admin account created!'}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success message - only show if everything is perfect */}
+        {isSuperAdmin && superAdminHasAccount && superAdminPermissionsOk && admins.length > 0 && (
+          <div className="mb-8 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+            <div className="flex items-center gap-2 text-green-400">
+              <CheckCircle2 className="w-5 h-5" />
+              <span>Your admin account is active. You can now create elections and manage the platform.</span>
+              <Link href="/admin" className="ml-auto">
+                <Button size="sm" variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10">
+                  Go to Dashboard
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Add Admin Form */}
         {showAddForm && (
@@ -251,8 +465,8 @@ export default function ManageAdminsPage() {
                   <Input
                     value={newAdminAddress}
                     onChange={(e) => setNewAdminAddress(e.target.value)}
-                    placeholder="Enter wallet address"
-                    className="bg-gray-800 border-gray-700 text-white"
+                    placeholder="Enter wallet address (e.g., 5A7bDg...)"
+                    className="bg-gray-800 border-gray-700 text-white font-mono"
                     disabled={adding}
                   />
                 </div>
@@ -273,7 +487,7 @@ export default function ManageAdminsPage() {
 
                 <div className="space-y-3">
                   <Label className="text-white">Permissions</Label>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="manage-elections"
@@ -286,7 +500,7 @@ export default function ManageAdminsPage() {
                         }
                       />
                       <label htmlFor="manage-elections" className="text-sm text-gray-300">
-                        Can manage elections
+                        Manage elections
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -301,7 +515,7 @@ export default function ManageAdminsPage() {
                         }
                       />
                       <label htmlFor="manage-candidates" className="text-sm text-gray-300">
-                        Can manage candidates
+                        Manage candidates
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -316,7 +530,7 @@ export default function ManageAdminsPage() {
                         }
                       />
                       <label htmlFor="manage-voters" className="text-sm text-gray-300">
-                        Can manage voters
+                        Manage voters
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -331,7 +545,7 @@ export default function ManageAdminsPage() {
                         }
                       />
                       <label htmlFor="finalize-results" className="text-sm text-gray-300">
-                        Can finalize results
+                        Finalize results
                       </label>
                     </div>
                   </div>
@@ -403,9 +617,14 @@ export default function ManageAdminsPage() {
                           <span className="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
                             Full Access
                           </span>
+                          {!superAdminHasAccount && isSuperAdmin && (
+                            <span className="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">
+                              No Admin Account
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-gray-400 font-mono">
-                          {adminRegistry.superAdmin.toString()}
+                          {String(adminRegistry.superAdmin)}
                         </p>
                       </div>
                     </div>
@@ -414,57 +633,73 @@ export default function ManageAdminsPage() {
               )}
 
               {/* Regular Admins */}
-              {admins.map((admin) => (
-                <div key={admin.publicKey} className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <Shield className="w-8 h-8 text-purple-400 flex-shrink-0" />
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-bold text-lg">{admin.name}</h3>
-                          {!admin.isActive && (
-                            <span className="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">
-                              Inactive
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-400 font-mono mb-3">
-                          {admin.authority.toString()}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {admin.permissions.can_manage_elections && (
-                            <span className="px-3 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
-                              Elections
-                            </span>
-                          )}
-                          {admin.permissions.can_manage_candidates && (
-                            <span className="px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">
-                              Candidates
-                            </span>
-                          )}
-                          {admin.permissions.can_manage_voters && (
-                            <span className="px-3 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
-                              Voters
-                            </span>
-                          )}
-                          {admin.permissions.can_finalize_results && (
-                            <span className="px-3 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
-                              Finalize
-                            </span>
-                          )}
+              {admins.length === 0 ? (
+                <div className="p-8 text-center text-gray-400">
+                  <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No admin accounts found.</p>
+                  {isSuperAdmin && !superAdminHasAccount && (
+                    <p className="mt-2 text-sm">Create your admin account first using the button above.</p>
+                  )}
+                </div>
+              ) : (
+                admins.map((admin) => (
+                  <div key={admin.publicKey} className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <Shield className="w-8 h-8 text-purple-400 flex-shrink-0" />
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold text-lg">{admin.name}</h3>
+                            {admin.isActive ? (
+                              <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+                                Active
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-400 font-mono mb-3">
+                            {String(admin.authority)}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {admin.permissions.can_manage_elections && (
+                              <span className="px-3 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+                                Elections
+                              </span>
+                            )}
+                            {admin.permissions.can_manage_candidates && (
+                              <span className="px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">
+                                Candidates
+                              </span>
+                            )}
+                            {admin.permissions.can_manage_voters && (
+                              <span className="px-3 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
+                                Voters
+                              </span>
+                            )}
+                            {admin.permissions.can_finalize_results && (
+                              <span className="px-3 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
+                                Finalize
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      {isSuperAdmin && admin.isActive && admin.authority !== publicKey?.toString() && (
+                        <Button
+                          onClick={() => handleRemoveAdmin(admin.authority.toString())}
+                          variant="destructive"
+                          size="sm"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
-                    <Button
-                      onClick={() => handleRemoveAdmin(admin.authority.toString())}
-                      variant="destructive"
-                      size="sm"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           )}
         </div>

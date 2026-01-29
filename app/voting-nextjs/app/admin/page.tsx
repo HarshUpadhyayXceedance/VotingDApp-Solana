@@ -91,7 +91,14 @@ export default function AdminDashboard() {
 
       const electionsData = electionAccounts.map((account: any) => ({
         publicKey: account.publicKey.toString(),
-        ...account.account,
+        // Explicitly map fields to primitives
+        electionId: account.account.electionId.toNumber ? account.account.electionId.toNumber() : account.account.electionId,
+        title: account.account.title,
+        description: account.account.description,
+        startTime: account.account.startTime.toNumber(), // Convert BN to number for formatting
+        endTime: account.account.endTime.toNumber(),     // Convert BN to number for formatting
+        totalVotes: account.account.totalVotes.toString(), // Keep large counts as string
+        candidateCount: account.account.candidateCount.toString(), // Keep counts as string
         status: parseElectionStatus(account.account.status),
       }));
 

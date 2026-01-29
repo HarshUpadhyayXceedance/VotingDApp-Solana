@@ -91,8 +91,8 @@ export function Navbar() {
               <Link
                 href="/elections"
                 className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${isActive('/elections')
-                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
+                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
                   }`}
               >
                 Elections
@@ -101,8 +101,8 @@ export function Navbar() {
                 <Link
                   href="/admin"
                   className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${isActive('/admin') || pathname?.startsWith('/admin/')
-                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
-                      : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
                     }`}
                 >
                   Admin
@@ -139,7 +139,9 @@ export function Navbar() {
 
             {/* Wallet Button */}
             <div className="hidden sm:block">
-              <WalletMultiButton className="!bg-gradient-to-r !from-purple-500 !to-purple-600 hover:!from-purple-600 hover:!to-purple-700 !rounded-xl !h-11 !px-5 !font-semibold !text-sm !shadow-lg !shadow-purple-500/30 !transition-all hover:!scale-105" />
+              {mounted && (
+                <WalletMultiButton className="!bg-gradient-to-r !from-purple-500 !to-purple-600 hover:!from-purple-600 hover:!to-purple-700 !rounded-xl !h-11 !px-5 !font-semibold !text-sm !shadow-lg !shadow-purple-500/30 !transition-all hover:!scale-105" />
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -163,7 +165,9 @@ export function Navbar() {
             <div className="flex flex-col gap-2">
               {/* Mobile Wallet Button */}
               <div className="sm:hidden mb-2">
-                <WalletMultiButton className="!w-full !bg-gradient-to-r !from-purple-500 !to-purple-600 hover:!from-purple-600 hover:!to-purple-700 !rounded-xl !h-11 !px-5 !font-semibold !text-sm !shadow-lg !shadow-purple-500/30" />
+                {mounted && (
+                  <WalletMultiButton className="!w-full !bg-gradient-to-r !from-purple-500 !to-purple-600 hover:!from-purple-600 hover:!to-purple-700 !rounded-xl !h-11 !px-5 !font-semibold !text-sm !shadow-lg !shadow-purple-500/30" />
+                )}
               </div>
 
               {publicKey && (
@@ -172,8 +176,8 @@ export function Navbar() {
                     href="/elections"
                     onClick={() => setMobileMenuOpen(false)}
                     className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${isActive('/elections')
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-800/50'
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-800/50'
                       }`}
                   >
                     Elections
@@ -183,8 +187,8 @@ export function Navbar() {
                       href="/admin"
                       onClick={() => setMobileMenuOpen(false)}
                       className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${isActive('/admin') || pathname?.startsWith('/admin/')
-                          ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-800/50'
+                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-800/50'
                         }`}
                     >
                       Admin

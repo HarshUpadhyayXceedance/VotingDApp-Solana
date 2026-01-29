@@ -8,6 +8,7 @@ use crate::state::*;
 #[instruction(title: String, description: String)]
 pub struct CreateElection<'info> {
     #[account(
+        mut, // MUTABLE to increment election_count
         seeds = [ADMIN_REGISTRY_SEED],
         bump = admin_registry.bump
     )]
@@ -25,7 +26,7 @@ pub struct CreateElection<'info> {
         init,
         payer = authority,
         space = Election::SIZE,
-        seeds = [ELECTION_SEED, &admin_registry.admin_count.to_le_bytes()],
+        seeds = [ELECTION_SEED, &admin_registry.election_count.to_le_bytes()],
         bump
     )]
     pub election: Account<'info, Election>,
@@ -61,10 +62,14 @@ pub fn create_election(
         VotingError::InvalidTimeRange
     );
     
+    // Increment election count first (use current as ID)
+    let election_id = ctx.accounts.admin_registry.election_count;
+    ctx.accounts.admin_registry.election_count = election_id.checked_add(1).unwrap();
+    
     let election = &mut ctx.accounts.election;
     let clock = Clock::get()?;
     
-    election.election_id = ctx.accounts.admin_registry.admin_count as u64;
+    election.election_id = election_id;
     election.authority = ctx.accounts.authority.key();
     election.title = title;
     election.description = description;

@@ -56,7 +56,15 @@ export default function ElectionDetailPage() {
 
       const electionData = {
         publicKey: electionId,
-        ...electionAccount,
+        // Explicitly map keys to primitives
+        electionId: electionAccount.electionId.toNumber ? electionAccount.electionId.toNumber() : electionAccount.electionId,
+        title: electionAccount.title,
+        description: electionAccount.description,
+        startTime: electionAccount.startTime.toNumber(),
+        endTime: electionAccount.endTime.toNumber(),
+        totalVotes: electionAccount.totalVotes.toString(),
+        candidateCount: electionAccount.candidateCount.toString(),
+        voterRegistrationType: electionAccount.voterRegistrationType,
         status: parseElectionStatus(electionAccount.status),
       };
 
@@ -75,7 +83,12 @@ export default function ElectionDetailPage() {
 
       const candidatesData = candidateAccounts.map((account: any) => ({
         publicKey: account.publicKey.toString(),
-        ...account.account,
+        candidateId: account.account.candidateId.toNumber ? account.account.candidateId.toNumber() : account.account.candidateId,
+        name: account.account.name,
+        description: account.account.description,
+        imageUrl: account.account.imageUrl,
+        voteCount: account.account.voteCount.toString(),
+        electionPubkey: account.account.electionPubkey.toString(),
       }));
 
       // Sort by candidate ID
