@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  Vote, 
-  LayoutDashboard, 
-  ClipboardList, 
-  BarChart3, 
-  Users, 
+import {
+  Vote,
+  LayoutDashboard,
+  ClipboardList,
+  BarChart3,
+  Users,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -66,10 +66,9 @@ export function AdminSidebar({ isSuperAdmin }: SidebarProps) {
   ];
 
   return (
-    <aside 
-      className={`fixed left-0 top-0 bottom-0 bg-gray-900 border-r border-gray-800 transition-all duration-300 z-50 ${
-        collapsed ? 'w-20' : 'w-64'
-      }`}
+    <aside
+      className={`fixed left-0 top-16 bottom-0 bg-gray-900 border-r border-gray-800 transition-all duration-300 z-40 ${collapsed ? 'w-20' : 'w-64'
+        }`}
     >
       {/* Header */}
       <div className="p-6 border-b border-gray-800">
@@ -96,16 +95,15 @@ export function AdminSidebar({ isSuperAdmin }: SidebarProps) {
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
-            
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                  isActive
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
                     ? 'bg-purple-500/10 text-purple-400'
                     : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                } ${collapsed ? 'justify-center' : ''}`}
+                  } ${collapsed ? 'justify-center' : ''}`}
                 title={collapsed ? item.name : ''}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -138,7 +136,7 @@ export function AdminSidebar({ isSuperAdmin }: SidebarProps) {
             </div>
           </div>
         )}
-        
+
         {/* Collapse Button */}
         <button
           onClick={() => setCollapsed(!collapsed)}

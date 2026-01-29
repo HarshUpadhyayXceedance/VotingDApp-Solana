@@ -3,12 +3,12 @@
 import { useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/navigation';
-import { 
-  Sparkles, 
-  Wallet, 
-  BookOpen, 
-  ShieldCheck, 
-  Code2, 
+import {
+  Sparkles,
+  Wallet,
+  BookOpen,
+  ShieldCheck,
+  Code2,
   Zap,
   Database,
   Clock,
@@ -30,58 +30,13 @@ import { Footer } from '@/components/shared/Footer';
 import { AnimatedBackground } from '@/components/shared/AnimatedBackground';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { SUPER_ADMIN, ADMIN_SEED } from '@/lib/constants';
-import { useProgram } from '@/hooks/useProgram';
-import { PublicKey } from '@solana/web3.js';
 
 export default function LandingPage() {
-  const { publicKey, connect } = useWallet();
+  const { publicKey } = useWallet();
   const router = useRouter();
-  const program = useProgram();
 
-  // Auto-redirect if wallet is connected
-  useEffect(() => {
-    if (publicKey && program) {
-      checkRoleAndRedirect();
-    }
-  }, [publicKey, program]);
-
-  const checkRoleAndRedirect = async () => {
-    if (!publicKey || !program) return;
-
-    try {
-      // Check if super admin
-      if (publicKey.equals(SUPER_ADMIN)) {
-        router.push('/admin');
-        return;
-      }
-
-      // Check if admin
-      const [adminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
-      // @ts-ignore
-      await program.account.admin.fetch(adminPda);
-      router.push('/admin');
-    } catch {
-      // Regular user - go to elections
-      router.push('/elections');
-    }
-  };
-
-  const handleGetStarted = async () => {
-    if (!publicKey) {
-      // Trigger wallet connection
-      try {
-        await connect();
-      } catch (error) {
-        console.error('Wallet connection failed:', error);
-      }
-    } else {
-      // Already connected, check role
-      checkRoleAndRedirect();
-    }
+  const handleGetStarted = () => {
+    router.push('/elections');
   };
 
   useEffect(() => {
@@ -179,7 +134,7 @@ export default function LandingPage() {
             <Card className="relative bg-gray-900/50 backdrop-blur-xl border-gray-800 p-8 shadow-2xl">
               {/* Glow Effect */}
               <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-green-400 rounded-3xl opacity-20 blur-xl" />
-              
+
               <div className="relative space-y-8">
                 {/* Icon */}
                 <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-green-400 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/50">

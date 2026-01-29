@@ -5,15 +5,52 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Vote, Sun, Moon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useProgram } from '@/hooks/useProgram';
+import { PublicKey } from '@solana/web3.js';
+import { SUPER_ADMIN, ADMIN_SEED } from '@/lib/constants';
 
 export function Navbar() {
   const { publicKey, disconnect } = useWallet();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const program = useProgram();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!publicKey || !program) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        // Check if super admin
+        if (publicKey.equals(SUPER_ADMIN)) {
+          setIsAdmin(true);
+          return;
+        }
+
+        // Check if admin
+        const [adminPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
+          program.programId
+        );
+        // @ts-ignore
+        await program.account.admin.fetch(adminPda);
+        setIsAdmin(true);
+      } catch {
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdmin();
+  }, [publicKey, program]);
 
   const handleDisconnect = async () => {
     await disconnect();
@@ -24,7 +61,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left: Logo */}
-          <div className="flex items-center gap-3 cursor-pointer hover:-translate-y-0.5 transition-transform">
+          <Link href="/" className="flex items-center gap-3 cursor-pointer hover:-translate-y-0.5 transition-transform">
             <div className="relative w-10 h-10 bg-gradient-to-br from-purple-500 to-green-400 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
               <div className="w-7 h-7 bg-gray-950 rounded-lg flex items-center justify-center">
                 <Vote className="w-4 h-4 text-white" />
@@ -33,7 +70,27 @@ export function Navbar() {
             <span className="text-xl font-bold bg-gradient-to-r from-purple-500 to-green-400 bg-clip-text text-transparent hidden sm:block">
               SolVote
             </span>
-          </div>
+          </Link>
+
+          {/* Center: Navigation Links */}
+          {publicKey && (
+            <div className="hidden md:flex items-center gap-6">
+              <Link
+                href="/elections"
+                className="text-gray-300 hover:text-purple-400 transition-colors font-medium"
+              >
+                Elections
+              </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="text-gray-300 hover:text-purple-400 transition-colors font-medium"
+                >
+                  Admin
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* Right: Status, Theme Toggle, Wallet */}
           <div className="flex items-center gap-3">

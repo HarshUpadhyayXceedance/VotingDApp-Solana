@@ -1,6 +1,7 @@
 'use client';
 
 import { Vote } from 'lucide-react';
+import Link from 'next/link';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -23,7 +24,7 @@ export function Footer() {
               </span>
             </div>
             <p className="text-gray-400 max-w-md leading-relaxed">
-              Decentralized voting infrastructure for the modern web. Built on Solana for 
+              Decentralized voting infrastructure for the modern web. Built on Solana for
               lightning-fast, transparent, and tamper-proof governance.
             </p>
           </div>
@@ -35,14 +36,14 @@ export function Footer() {
             </h4>
             <ul className="space-y-3">
               <li>
-                <a href="/elections" className="text-gray-400 hover:text-purple-400 transition-colors">
+                <Link href="/elections" className="text-gray-400 hover:text-purple-400 transition-colors">
                   Elections
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/admin" className="text-gray-400 hover:text-purple-400 transition-colors">
+                <Link href="/admin" className="text-gray-400 hover:text-purple-400 transition-colors">
                   Admin Dashboard
-                </a>
+                </Link>
               </li>
               <li>
                 <a href="#" className="text-gray-400 hover:text-purple-400 transition-colors">
@@ -64,9 +65,9 @@ export function Footer() {
             </h4>
             <ul className="space-y-3">
               <li>
-                <a 
-                  href="https://docs.solana.com" 
-                  target="_blank" 
+                <a
+                  href="https://docs.solana.com"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-purple-400 transition-colors"
                 >
@@ -74,9 +75,9 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a 
-                  href="https://github.com" 
-                  target="_blank" 
+                <a
+                  href="https://github.com"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-purple-400 transition-colors"
                 >
@@ -102,7 +103,7 @@ export function Footer() {
           <p className="text-gray-400 text-sm">
             © {currentYear} SolVote. All rights reserved.
           </p>
-          
+
           <div className="flex items-center gap-2 text-sm">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
             <span className="text-gray-400">Running on Solana Devnet</span>
