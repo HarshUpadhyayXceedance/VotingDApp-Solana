@@ -72,16 +72,23 @@ export function InitializeAdminRegistryModal({
         onSuccess();
       }, 2000);
     } catch (error: any) {
-      console.error('❌ Error initializing admin registry:', error);
-
       let errorMsg = 'Failed to initialize admin registry';
+      let isKnownError = false;
 
-      if (error.message?.includes('already in use')) {
+      if (error.message?.includes('already in use') || error.message?.includes('custom program error: 0x0')) {
         errorMsg = 'Admin registry already initialized';
+        isKnownError = true;
       } else if (error.message?.includes('insufficient')) {
         errorMsg = 'Insufficient SOL. Please get more SOL from a faucet.';
+        isKnownError = true;
       } else if (error.message) {
         errorMsg = error.message;
+      }
+
+      if (isKnownError) {
+        console.log(`ℹ️ ${errorMsg}`);
+      } else {
+        console.error('❌ Error initializing admin registry:', error);
       }
 
       setError(errorMsg);

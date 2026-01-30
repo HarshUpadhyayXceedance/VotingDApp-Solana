@@ -14,7 +14,12 @@ echo "⏳ Waiting for validator to start (5 seconds)..."
 sleep 5
 
 echo "🏗️ Building and Deploying program..."
-cd voting-dapp
+if [ -f "Anchor.toml" ]; then
+    echo "📂 Already in project root"
+else
+    echo "📂 changing directory to voting-dapp..."
+    cd voting-dapp
+fi
 anchor build
 anchor deploy
 

@@ -633,6 +633,7 @@
       "accounts": [
         {
           "name": "admin_registry",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -698,7 +699,7 @@
               },
               {
                 "kind": "account",
-                "path": "admin_registry.admin_count",
+                "path": "admin_registry.election_count",
                 "account": "AdminRegistry"
               }
             ]
@@ -2091,6 +2092,10 @@
           {
             "name": "admin_count",
             "type": "u32"
+          },
+          {
+            "name": "election_count",
+            "type": "u64"
           },
           {
             "name": "paused",

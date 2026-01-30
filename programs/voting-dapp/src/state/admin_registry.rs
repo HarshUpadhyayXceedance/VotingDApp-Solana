@@ -2,9 +2,9 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct AdminRegistry {
-    pub super_admin: Pubkey,      
-    pub admin_count: u32,
+    pub super_admin: Pubkey,
     pub election_count: u64,      
+    pub admin_count: u32,      
     pub paused: bool,             
     pub bump: u8,                 
 }
