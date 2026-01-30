@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
-import { ADMIN_SEED } from '@/lib/constants';
+import {
+  getAdminRegistryPda,
+  getAdminPda,
+  getCandidatePda
+} from '@/lib/helpers';
+import { MAX_NAME_LENGTH, MAX_DESCRIPTION_LENGTH, MAX_IMAGE_URL_LENGTH } from '@/lib/constants';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, CheckCircle2, UserPlus, Image } from 'lucide-react';
+import { AlertCircle, CheckCircle2, UserPlus } from 'lucide-react';
 
 interface AddCandidateModalProps {
   open: boolean;
@@ -48,18 +53,19 @@ export function AddCandidateModal({
       return;
     }
 
-    if (!candidateName || candidateName.length > 50) {
-      setError('Please enter a valid name (max 50 characters)');
+    // Validation
+    if (!candidateName || candidateName.length > MAX_NAME_LENGTH) {
+      setError(`Please enter a valid name (max ${MAX_NAME_LENGTH} characters)`);
       return;
     }
 
-    if (!candidateDescription || candidateDescription.length > 500) {
-      setError('Description is required (max 500 characters)');
+    if (candidateDescription && candidateDescription.length > MAX_DESCRIPTION_LENGTH) {
+      setError(`Description too long (max ${MAX_DESCRIPTION_LENGTH} characters)`);
       return;
     }
 
-    if (candidateImageUrl && candidateImageUrl.length > 200) {
-      setError('Image URL too long (max 200 characters)');
+    if (candidateImageUrl && candidateImageUrl.length > MAX_IMAGE_URL_LENGTH) {
+      setError(`Image URL too long (max ${MAX_IMAGE_URL_LENGTH} characters)`);
       return;
     }
 
@@ -69,43 +75,37 @@ export function AddCandidateModal({
 
       const electionPubkey = new PublicKey(electionPublicKey);
 
-      // Fetch election to get candidate_count
-      // @ts-ignore
-      const election = await program.account.election.fetch(electionPubkey);
-      const candidateId = election.candidateCount;
-
-      // Derive admin registry PDA
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      // Derive admin PDA
-      const [adminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
-
-      // Derive candidate PDA
-      const [candidatePda] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from('candidate'),
-          electionPubkey.toBuffer(),
-          Buffer.from(new Uint8Array(new Uint32Array([candidateId]).buffer))
-        ],
-        program.programId
-      );
+      // Get PDAs
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
 
       console.log('Adding candidate...');
       console.log('Election:', electionPubkey.toString());
+      console.log('Authority:', publicKey.toString());
+      console.log('Admin PDA:', adminPda.toString());
+
+      // Fetch election to get candidate_count
+      // @ts-ignore
+      const electionAccount = await program.account.election.fetch(electionPubkey);
+      const candidateId = electionAccount.candidateCount;
+
       console.log('Candidate ID:', candidateId);
+
+      // Derive candidate PDA
+      const [candidatePda] = getCandidatePda(
+        electionPubkey,
+        candidateId,
+        program.programId
+      );
+
       console.log('Candidate PDA:', candidatePda.toString());
 
+      // Add candidate transaction
       // @ts-ignore
       const tx = await program.methods
         .addCandidate(
-          candidateName, 
-          candidateDescription,
+          candidateName,
+          candidateDescription || '',
           candidateImageUrl || ''
         )
         .accountsStrict({
@@ -119,8 +119,11 @@ export function AddCandidateModal({
         .rpc();
 
       console.log('✅ Candidate added:', tx);
+      console.log('Candidate PDA:', candidatePda.toString());
+      
       setSuccess(true);
       
+      // Reset form
       setTimeout(() => {
         setCandidateName('');
         setCandidateDescription('');
@@ -134,11 +137,21 @@ export function AddCandidateModal({
       let errorMsg = 'Failed to add candidate';
       
       if (error.message?.includes('CannotModifyActiveElection')) {
-        errorMsg = 'Cannot add candidates to an active election';
-      } else if (error.message?.includes('Unauthorized')) {
-        errorMsg = 'You are not authorized';
+        errorMsg = 'Cannot add candidates to an active or closed election. Election must be in Draft status.';
       } else if (error.message?.includes('InsufficientPermissions')) {
-        errorMsg = 'You do not have permission to manage candidates';
+        errorMsg = 'You do not have permission to manage candidates.';
+      } else if (error.message?.includes('AdminNotActive')) {
+        errorMsg = 'Your admin account is not active.';
+      } else if (error.message?.includes('NameTooLong')) {
+        errorMsg = `Candidate name is too long (max ${MAX_NAME_LENGTH} characters)`;
+      } else if (error.message?.includes('DescriptionTooLong')) {
+        errorMsg = `Description is too long (max ${MAX_DESCRIPTION_LENGTH} characters)`;
+      } else if (error.message?.includes('ImageUrlTooLong')) {
+        errorMsg = `Image URL is too long (max ${MAX_IMAGE_URL_LENGTH} characters)`;
+      } else if (error.message?.includes('insufficient')) {
+        errorMsg = 'Insufficient SOL. Please get more SOL from a faucet.';
+      } else if (error.message?.includes('AccountNotInitialized')) {
+        errorMsg = 'Admin account not found. Make sure you are registered as an admin.';
       } else if (error.message) {
         errorMsg = error.message;
       }
@@ -174,67 +187,83 @@ export function AddCandidateModal({
           <div className="py-8 text-center">
             <CheckCircle2 className="w-16 h-16 text-green-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">Candidate Added!</h3>
-            <p className="text-gray-400">Successfully added to the election.</p>
+            <p className="text-gray-400">The candidate has been successfully added to the election.</p>
           </div>
         ) : (
           <>
             <div className="space-y-6 py-4">
+              {/* Candidate Name Field */}
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-white">
-                  Name <span className="text-red-400">*</span>
+                  Candidate Name <span className="text-red-400">*</span>
                 </Label>
                 <Input
                   id="name"
                   value={candidateName}
                   onChange={(e) => setCandidateName(e.target.value)}
                   placeholder="e.g., Alice Johnson"
-                  maxLength={50}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  maxLength={MAX_NAME_LENGTH}
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
                   disabled={loading}
                 />
-                <p className="text-xs text-gray-500">{candidateName.length}/50</p>
+                <p className="text-xs text-gray-500">
+                  {candidateName.length}/{MAX_NAME_LENGTH} characters
+                </p>
               </div>
 
+              {/* Candidate Description Field */}
               <div className="space-y-2">
                 <Label htmlFor="description" className="text-white">
-                  Description <span className="text-red-400">*</span>
+                  Description <span className="text-gray-500 text-xs">(Optional)</span>
                 </Label>
                 <Textarea
                   id="description"
                   value={candidateDescription}
                   onChange={(e) => setCandidateDescription(e.target.value)}
-                  placeholder="Candidate background and qualifications..."
-                  maxLength={500}
+                  placeholder="Provide details about the candidate's background, qualifications, or platform..."
+                  maxLength={MAX_DESCRIPTION_LENGTH}
                   rows={4}
-                  className="bg-gray-800 border-gray-700 text-white resize-none"
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 resize-none"
                   disabled={loading}
                 />
-                <p className="text-xs text-gray-500">{candidateDescription.length}/500</p>
+                <p className="text-xs text-gray-500">
+                  {candidateDescription.length}/{MAX_DESCRIPTION_LENGTH} characters
+                </p>
               </div>
 
+              {/* Image URL Field */}
               <div className="space-y-2">
-                <Label htmlFor="imageUrl" className="text-white flex items-center gap-2">
-                  <Image className="w-4 h-4" />
+                <Label htmlFor="imageUrl" className="text-white">
                   Image URL <span className="text-gray-500 text-xs">(Optional)</span>
                 </Label>
                 <Input
                   id="imageUrl"
                   value={candidateImageUrl}
                   onChange={(e) => setCandidateImageUrl(e.target.value)}
-                  placeholder="https://example.com/photo.jpg"
-                  maxLength={200}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  placeholder="https://example.com/candidate-photo.jpg"
+                  maxLength={MAX_IMAGE_URL_LENGTH}
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
                   disabled={loading}
                 />
-                <p className="text-xs text-gray-500">{candidateImageUrl.length}/200</p>
+                <p className="text-xs text-gray-500">
+                  {candidateImageUrl.length}/{MAX_IMAGE_URL_LENGTH} characters
+                </p>
               </div>
 
+              {/* Error Message */}
               {error && (
                 <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                   <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-red-400">{error}</p>
                 </div>
               )}
+
+              {/* Info */}
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <p className="text-xs text-gray-400">
+                  💡 <strong className="text-white">Note:</strong> Candidates can only be added to elections in Draft status. Each candidate will have their own on-chain account.
+                </p>
+              </div>
             </div>
 
             <DialogFooter>
@@ -248,8 +277,8 @@ export function AddCandidateModal({
               </Button>
               <Button
                 onClick={handleAddCandidate}
-                disabled={loading || !candidateName || !candidateDescription}
-                className="bg-gradient-to-r from-blue-500 to-blue-600"
+                disabled={loading || !candidateName}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
               >
                 {loading ? (
                   <>

@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
-import { BN } from '@coral-xyz/anchor';
-import { ADMIN_SEED } from '@/lib/constants';
-import { VoterRegistrationType, formatVoterRegistrationType } from '@/lib/types';
-import { validateElectionTimes } from '@/lib/election-utils';
+import { SystemProgram } from '@solana/web3.js';
+import { SUPER_ADMIN } from '@/lib/constants';
+import {
+  getAdminRegistryPda,
+  getAdminPda,
+  getElectionPda,
+} from '@/lib/helpers';
+import { MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH } from '@/lib/constants';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react';
+import { AlertCircle, CheckCircle2, UserPlus, Calendar } from 'lucide-react';
 
 interface CreateElectionModalProps {
   open: boolean;
@@ -35,15 +38,131 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
   const [electionTitle, setElectionTitle] = useState('');
   const [electionDescription, setElectionDescription] = useState('');
   const [startDate, setStartDate] = useState('');
-  const [startTime, setStartTime] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [voterRegistrationType, setVoterRegistrationType] = useState<VoterRegistrationType>(
-    VoterRegistrationType.Open
-  );
+  const [voterRegistrationType, setVoterRegistrationType] = useState<'open' | 'whitelist'>('open');
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [needsAdminSetup, setNeedsAdminSetup] = useState(false);
+  const [settingUpAdmin, setSettingUpAdmin] = useState(false);
+  const [needsRegistryInit, setNeedsRegistryInit] = useState(false);
+  const [initializingRegistry, setInitializingRegistry] = useState(false);
+
+  const handleAddSelfAsAdmin = async () => {
+    if (!program || !publicKey) {
+      setError('Please connect your wallet');
+      return;
+    }
+
+    try {
+      setSettingUpAdmin(true);
+      setError('');
+
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
+
+      console.log('Adding self as admin...');
+      console.log('Super Admin:', publicKey.toString());
+      console.log('Admin PDA:', adminPda.toString());
+
+      // @ts-ignore
+      const tx = await program.methods
+        .addAdmin("Super Admin", {
+          canManageElections: true,
+          canManageCandidates: true,
+          canManageVoters: true,
+          canFinalizeResults: true,
+        })
+        .accountsStrict({
+          adminRegistry: adminRegistryPda,
+          adminAccount: adminPda,
+          newAdmin: publicKey,
+          superAdmin: publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      console.log('✅ Admin added:', tx);
+      setNeedsAdminSetup(false);
+      setError('');
+      
+      setTimeout(() => {
+        setSettingUpAdmin(false);
+      }, 1000);
+    } catch (error: any) {
+      console.error('❌ Error adding admin:', error);
+      setSettingUpAdmin(false);
+      
+      let errorMsg = 'Failed to add admin account';
+      
+      if (error.message?.includes('Unauthorized')) {
+        errorMsg = 'Only the super admin can add admins. Your address: ' + publicKey.toString();
+      } else if (error.message?.includes('already in use')) {
+        setNeedsAdminSetup(false);
+        setError('');
+        return;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
+      setError(errorMsg);
+    }
+  };
+
+  const handleInitializeRegistry = async () => {
+    if (!program || !publicKey) {
+      setError('Please connect your wallet');
+      return;
+    }
+
+    try {
+      setInitializingRegistry(true);
+      setError('');
+
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+
+      console.log('Initializing admin registry...');
+      console.log('Super Admin:', publicKey.toString());
+      console.log('Admin Registry PDA:', adminRegistryPda.toString());
+
+      // @ts-ignore
+      const tx = await program.methods
+        .initializeAdminRegistry()
+        .accountsStrict({
+          adminRegistry: adminRegistryPda,
+          superAdmin: publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      console.log('✅ Admin registry initialized:', tx);
+      setNeedsRegistryInit(false);
+      setError('');
+      
+      setTimeout(() => {
+        setInitializingRegistry(false);
+        // After initializing, we still need to add admin
+        setNeedsAdminSetup(true);
+      }, 1000);
+    } catch (error: any) {
+      console.error('❌ Error initializing registry:', error);
+      setInitializingRegistry(false);
+      
+      let errorMsg = 'Failed to initialize admin registry';
+      
+      if (error.message?.includes('already in use')) {
+        setNeedsRegistryInit(false);
+        setNeedsAdminSetup(true);
+        setError('');
+        return;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
+      setError(errorMsg);
+    }
+  };
 
   const handleCreate = async () => {
     if (!program || !publicKey) {
@@ -51,82 +170,83 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
       return;
     }
 
-    if (!electionTitle || electionTitle.length > 100) {
-      setError('Please enter a valid title (max 100 characters)');
+    // Validation
+    if (!electionTitle || electionTitle.length > MAX_TITLE_LENGTH) {
+      setError(`Please enter a valid title (max ${MAX_TITLE_LENGTH} characters)`);
       return;
     }
 
-    if (electionDescription && electionDescription.length > 500) {
-      setError('Description too long (max 500 characters)');
+    if (electionDescription && electionDescription.length > MAX_DESCRIPTION_LENGTH) {
+      setError(`Description too long (max ${MAX_DESCRIPTION_LENGTH} characters)`);
       return;
     }
 
-    if (!startDate || !startTime || !endDate || !endTime) {
-      setError('Please provide start and end date/time');
+    if (!startDate || !endDate) {
+      setError('Please select start and end dates');
+      return;
+    }
+
+    const startTime = new Date(startDate).getTime() / 1000;
+    const endTime = new Date(endDate).getTime() / 1000;
+
+    if (endTime <= startTime) {
+      setError('End time must be after start time');
       return;
     }
 
     try {
       setLoading(true);
       setError('');
+      setNeedsAdminSetup(false);
+      setNeedsRegistryInit(false);
 
-      // Convert date/time to Unix timestamp
-      const startTimestamp = Math.floor(
-        new Date(`${startDate}T${startTime}`).getTime() / 1000
-      );
-      const endTimestamp = Math.floor(
-        new Date(`${endDate}T${endTime}`).getTime() / 1000
-      );
+      // Get PDAs
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
 
-      // Validate times
-      const validation = validateElectionTimes(startTimestamp, endTimestamp);
-      if (!validation.valid) {
-        setError(validation.error || 'Invalid time range');
+      console.log('Creating election...');
+      console.log('Authority:', publicKey.toString());
+      console.log('Admin PDA:', adminPda.toString());
+      console.log('Admin Registry PDA:', adminRegistryPda.toString());
+
+      // Check if admin registry exists
+      let adminRegistry: any;
+      try {
+        // @ts-ignore
+        adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
+        console.log('✅ Admin registry exists, election_count:', adminRegistry.electionCount.toNumber());
+      } catch (e) {
+        console.log('❌ Admin registry not found');
+        setNeedsRegistryInit(true);
+        setError('Admin registry not initialized. Click "Initialize Registry" to continue.');
         setLoading(false);
         return;
       }
 
-      // Convert to BN for Anchor i64
-      const startTimeBN = new BN(startTimestamp);
-      const endTimeBN = new BN(endTimestamp);
+      // Check if admin account exists
+      try {
+        // @ts-ignore
+        await program.account.admin.fetch(adminPda);
+        console.log('✅ Admin account exists');
+      } catch (e) {
+        console.log('❌ Admin account not found');
+        setNeedsAdminSetup(true);
+        setError('Admin account not initialized. Click "Setup Admin Account" to continue.');
+        setLoading(false);
+        return;
+      }
 
-      // Fetch admin registry to get correct election_id
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
+      // Get election ID (current election_count)
+      const electionId = adminRegistry.electionCount.toNumber();
+      const [electionPda] = getElectionPda(electionId, program.programId);
 
-      // @ts-ignore
-      const adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
-
-      // Use electionCount (u64) for ID. It comes as BN from Anchor.
-      // Fallback to adminCount if electionCount is missing (backward compat? No, breaking change)
-      const electionIdBN = adminRegistry.electionCount as BN || new BN(0);
-      const electionId = electionIdBN.toNumber();
-
-      // Derive admin PDA
-      const [adminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
-
-      // Derive election PDA using election_count as u64 (8 bytes, little-endian)
-      // Rust uses: seeds = [ELECTION_SEED, &admin_registry.election_count.to_le_bytes()]
-      const electionIdBuffer = electionIdBN.toArrayLike(Buffer, 'le', 8);
-
-      const [electionPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('election'), electionIdBuffer],
-        program.programId
-      );
-
-      console.log('Creating election...');
-      console.log('Admin Registry PDA:', adminRegistryPda.toString());
-      console.log('Admin PDA:', adminPda.toString());
       console.log('Election ID:', electionId);
       console.log('Election PDA:', electionPda.toString());
-      console.log('Start Time:', startTimestamp);
-      console.log('End Time:', endTimestamp);
-      console.log('Voter Registration Type:', voterRegistrationType);
+
+      // Convert voter registration type to the format expected by Anchor
+      const voterRegType = voterRegistrationType === 'open' 
+        ? { open: {} } 
+        : { whitelist: {} };
 
       // Create election transaction
       // @ts-ignore
@@ -134,13 +254,13 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         .createElection(
           electionTitle,
           electionDescription || '',
-          startTimeBN,  // Pass BN instead of number
-          endTimeBN,    // Pass BN instead of number
-          formatVoterRegistrationType(voterRegistrationType)
+          Math.floor(startTime),
+          Math.floor(endTime),
+          voterRegType
         )
-        .accounts({
+        .accountsStrict({
           adminRegistry: adminRegistryPda,
-          adminAccount: adminPda,  // This is derived from authority (current user)
+          adminAccount: adminPda,
           election: electionPda,
           authority: publicKey,
           systemProgram: SystemProgram.programId,
@@ -148,37 +268,39 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         .rpc();
 
       console.log('✅ Election created:', tx);
+      console.log('Election PDA:', electionPda.toString());
+      
       setSuccess(true);
-
+      
       // Reset form
       setTimeout(() => {
         setElectionTitle('');
         setElectionDescription('');
         setStartDate('');
-        setStartTime('');
         setEndDate('');
-        setEndTime('');
-        setVoterRegistrationType(VoterRegistrationType.Open);
+        setVoterRegistrationType('open');
         setSuccess(false);
         onSuccess();
       }, 1500);
     } catch (error: any) {
       console.error('❌ Error creating election:', error);
-
+      
       let errorMsg = 'Failed to create election';
-
+      
       if (error.message?.includes('AccountNotInitialized') || error.message?.includes('3012')) {
-        errorMsg = 'Admin account not initialized. Please contact super admin.';
+        setNeedsRegistryInit(true);
+        errorMsg = 'Admin registry not initialized. Click "Initialize Registry" below.';
+      } else if (error.message?.includes('AdminNotActive')) {
+        setNeedsAdminSetup(true);
+        errorMsg = 'Admin account not found. Click "Setup Admin Account" below.';
       } else if (error.message?.includes('Unauthorized')) {
         errorMsg = 'You are not authorized. Make sure you are an admin.';
-      } else if (error.message?.includes('InsufficientPermissions')) {
-        errorMsg = 'You do not have permission to create elections.';
       } else if (error.message?.includes('insufficient')) {
         errorMsg = 'Insufficient SOL. Please get more SOL from a faucet.';
       } else if (error.message) {
         errorMsg = error.message;
       }
-
+      
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -186,24 +308,38 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
   };
 
   const handleClose = () => {
-    if (!loading) {
+    if (!loading && !settingUpAdmin && !initializingRegistry) {
       setElectionTitle('');
       setElectionDescription('');
       setStartDate('');
-      setStartTime('');
       setEndDate('');
-      setEndTime('');
-      setVoterRegistrationType(VoterRegistrationType.Open);
+      setVoterRegistrationType('open');
       setError('');
       setSuccess(false);
+      setNeedsAdminSetup(false);
+      setNeedsRegistryInit(false);
       onClose();
     }
   };
 
-  // Get min date/time for start (now + 1 hour)
-  const minStartDateTime = new Date(Date.now() + 60 * 60 * 1000);
-  const minStartDate = minStartDateTime.toISOString().split('T')[0];
-  const minStartTime = minStartDateTime.toTimeString().slice(0, 5);
+  const isSuperAdmin = publicKey?.equals(SUPER_ADMIN);
+
+  // Set default dates (today to 7 days from now)
+  const getDefaultDates = () => {
+    const now = new Date();
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    return {
+      start: now.toISOString().slice(0, 16),
+      end: weekFromNow.toISOString().slice(0, 16),
+    };
+  };
+
+  if (!startDate && !endDate && open) {
+    const defaults = getDefaultDates();
+    setStartDate(defaults.start);
+    setEndDate(defaults.end);
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -211,7 +347,7 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         <DialogHeader>
           <DialogTitle className="text-white text-2xl">Create New Election</DialogTitle>
           <DialogDescription className="text-gray-400">
-            Create a new election on the Solana blockchain with time-based voting windows.
+            Create a new election on the Solana blockchain with all details.
           </DialogDescription>
         </DialogHeader>
 
@@ -234,11 +370,13 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
                   value={electionTitle}
                   onChange={(e) => setElectionTitle(e.target.value)}
                   placeholder="e.g., Student Council Election 2024"
-                  maxLength={100}
+                  maxLength={MAX_TITLE_LENGTH}
                   className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-                  disabled={loading}
+                  disabled={loading || settingUpAdmin || initializingRegistry}
                 />
-                <p className="text-xs text-gray-500">{electionTitle.length}/100 characters</p>
+                <p className="text-xs text-gray-500">
+                  {electionTitle.length}/{MAX_TITLE_LENGTH} characters
+                </p>
               </div>
 
               {/* Description Field */}
@@ -251,111 +389,79 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
                   value={electionDescription}
                   onChange={(e) => setElectionDescription(e.target.value)}
                   placeholder="Provide a brief description of what this election is about..."
-                  maxLength={500}
-                  rows={3}
+                  maxLength={MAX_DESCRIPTION_LENGTH}
+                  rows={4}
                   className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 resize-none"
-                  disabled={loading}
+                  disabled={loading || settingUpAdmin || initializingRegistry}
                 />
                 <p className="text-xs text-gray-500">
-                  {electionDescription.length}/500 characters
+                  {electionDescription.length}/{MAX_DESCRIPTION_LENGTH} characters
                 </p>
               </div>
 
-              {/* Start Date/Time */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="start-date" className="text-white flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Start Date <span className="text-red-400">*</span>
-                  </Label>
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    min={minStartDate}
-                    className="bg-gray-800 border-gray-700 text-white"
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="start-time" className="text-white flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Start Time <span className="text-red-400">*</span>
-                  </Label>
-                  <Input
-                    id="start-time"
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white"
-                    disabled={loading}
-                  />
-                </div>
+              {/* Start Date */}
+              <div className="space-y-2">
+                <Label htmlFor="startDate" className="text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Start Date & Time <span className="text-red-400">*</span>
+                </Label>
+                <Input
+                  id="startDate"
+                  type="datetime-local"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white"
+                  disabled={loading || settingUpAdmin || initializingRegistry}
+                />
               </div>
 
-              {/* End Date/Time */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="end-date" className="text-white flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    End Date <span className="text-red-400">*</span>
-                  </Label>
-                  <Input
-                    id="end-date"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    min={startDate || minStartDate}
-                    className="bg-gray-800 border-gray-700 text-white"
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="end-time" className="text-white flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    End Time <span className="text-red-400">*</span>
-                  </Label>
-                  <Input
-                    id="end-time"
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white"
-                    disabled={loading}
-                  />
-                </div>
+              {/* End Date */}
+              <div className="space-y-2">
+                <Label htmlFor="endDate" className="text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  End Date & Time <span className="text-red-400">*</span>
+                </Label>
+                <Input
+                  id="endDate"
+                  type="datetime-local"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white"
+                  disabled={loading || settingUpAdmin || initializingRegistry}
+                />
               </div>
 
               {/* Voter Registration Type */}
               <div className="space-y-2">
                 <Label className="text-white">
-                  Voter Registration <span className="text-red-400">*</span>
+                  Voter Registration Type <span className="text-red-400">*</span>
                 </Label>
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     type="button"
-                    onClick={() => setVoterRegistrationType(VoterRegistrationType.Open)}
-                    disabled={loading}
-                    className={`p-4 rounded-lg border-2 transition-all ${voterRegistrationType === VoterRegistrationType.Open
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-gray-700 bg-gray-800 hover:border-gray-600'
-                      }`}
+                    onClick={() => setVoterRegistrationType('open')}
+                    disabled={loading || settingUpAdmin || initializingRegistry}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      voterRegistrationType === 'open'
+                        ? 'border-purple-500 bg-purple-500/10'
+                        : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                    }`}
                   >
-                    <h4 className="font-bold text-white mb-1">Open</h4>
-                    <p className="text-xs text-gray-400">Anyone can vote</p>
+                    <div className="text-white font-bold mb-1">Open</div>
+                    <div className="text-xs text-gray-400">Anyone can vote</div>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setVoterRegistrationType(VoterRegistrationType.Whitelist)}
-                    disabled={loading}
-                    className={`p-4 rounded-lg border-2 transition-all ${voterRegistrationType === VoterRegistrationType.Whitelist
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-gray-700 bg-gray-800 hover:border-gray-600'
-                      }`}
+                    onClick={() => setVoterRegistrationType('whitelist')}
+                    disabled={loading || settingUpAdmin || initializingRegistry}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      voterRegistrationType === 'whitelist'
+                        ? 'border-purple-500 bg-purple-500/10'
+                        : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                    }`}
                   >
-                    <h4 className="font-bold text-white mb-1">Whitelist</h4>
-                    <p className="text-xs text-gray-400">Only approved voters</p>
+                    <div className="text-white font-bold mb-1">Whitelist</div>
+                    <div className="text-xs text-gray-400">Approved voters only</div>
                   </button>
                 </div>
               </div>
@@ -364,15 +470,60 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
               {error && (
                 <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                   <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-400">{error}</p>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-400">{error}</p>
+                    
+                    {/* Initialize Registry Button */}
+                    {needsRegistryInit && isSuperAdmin && (
+                      <Button
+                        onClick={handleInitializeRegistry}
+                        disabled={initializingRegistry}
+                        className="mt-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                        size="sm"
+                      >
+                        {initializingRegistry ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                            Initializing...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Initialize Registry
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    {/* Setup Admin Button */}
+                    {needsAdminSetup && isSuperAdmin && !needsRegistryInit && (
+                      <Button
+                        onClick={handleAddSelfAsAdmin}
+                        disabled={settingUpAdmin}
+                        className="mt-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                        size="sm"
+                      >
+                        {settingUpAdmin ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                            Setting up...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Setup Admin Account
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* Info */}
               <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
                 <p className="text-xs text-gray-400">
-                  💡 <strong className="text-white">Pro tip:</strong> Elections start in Draft
-                  status. You can add candidates before starting the election.
+                  💡 <strong className="text-white">Note:</strong> Elections start in Draft status. Add candidates first, then start the election manually.
                 </p>
               </div>
             </div>
@@ -381,14 +532,14 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
               <Button
                 variant="outline"
                 onClick={handleClose}
-                disabled={loading}
+                disabled={loading || settingUpAdmin || initializingRegistry}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleCreate}
-                disabled={loading || !electionTitle || !startDate || !startTime || !endDate || !endTime}
+                disabled={loading || settingUpAdmin || initializingRegistry || !electionTitle || !startDate || !endDate}
                 className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
               >
                 {loading ? (

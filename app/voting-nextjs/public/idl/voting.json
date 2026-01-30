@@ -2090,12 +2090,12 @@
             "type": "pubkey"
           },
           {
-            "name": "admin_count",
-            "type": "u32"
-          },
-          {
             "name": "election_count",
             "type": "u64"
+          },
+          {
+            "name": "admin_count",
+            "type": "u32"
           },
           {
             "name": "paused",
