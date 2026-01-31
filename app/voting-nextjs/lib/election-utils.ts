@@ -1,8 +1,5 @@
-import { ElectionStatus, Election } from './types';
+import { ElectionStatus } from './types';
 
-/**
- * Get human-readable label for election status
- */
 export function getElectionStatusLabel(status: ElectionStatus): string {
   switch (status) {
     case ElectionStatus.Draft:
@@ -21,7 +18,7 @@ export function getElectionStatusLabel(status: ElectionStatus): string {
 }
 
 /**
- * Get color class for election status badge
+ * Get color classes for election status badge
  */
 export function getElectionStatusColor(status: ElectionStatus): string {
   switch (status) {
@@ -41,81 +38,7 @@ export function getElectionStatusColor(status: ElectionStatus): string {
 }
 
 /**
- * Get icon name for election status
- */
-export function getElectionStatusIcon(status: ElectionStatus): string {
-  switch (status) {
-    case ElectionStatus.Draft:
-      return 'FileText';
-    case ElectionStatus.Active:
-      return 'Activity';
-    case ElectionStatus.Ended:
-      return 'StopCircle';
-    case ElectionStatus.Cancelled:
-      return 'XCircle';
-    case ElectionStatus.Finalized:
-      return 'CheckCircle';
-    default:
-      return 'Circle';
-  }
-}
-
-/**
- * Check if an election is currently active and within voting window
- */
-export function canVote(election: Election, currentTime?: number): boolean {
-  const now = currentTime || Math.floor(Date.now() / 1000);
-  return (
-    election.status === ElectionStatus.Active &&
-    now >= election.startTime &&
-    now <= election.endTime
-  );
-}
-
-/**
- * Check if election is active (status check only)
- */
-export function isElectionActive(election: Election): boolean {
-  return election.status === ElectionStatus.Active;
-}
-
-/**
- * Check if election can be modified (candidates added/removed)
- */
-export function canModifyElection(election: Election): boolean {
-  return election.status === ElectionStatus.Draft;
-}
-
-/**
- * Check if election can be started
- */
-export function canStartElection(election: Election): boolean {
-  return election.status === ElectionStatus.Draft && election.candidateCount > 0;
-}
-
-/**
- * Check if election can be ended
- */
-export function canEndElection(election: Election): boolean {
-  return election.status === ElectionStatus.Active;
-}
-
-/**
- * Check if election can be cancelled
- */
-export function canCancelElection(election: Election): boolean {
-  return election.status !== ElectionStatus.Finalized;
-}
-
-/**
- * Check if election can be finalized
- */
-export function canFinalizeElection(election: Election): boolean {
-  return election.status === ElectionStatus.Ended;
-}
-
-/**
- * Format Unix timestamp to human-readable date/time
+ * Format Unix timestamp to readable date/time
  */
 export function formatElectionTime(timestamp: number): string {
   const date = new Date(timestamp * 1000);
@@ -123,92 +46,96 @@ export function formatElectionTime(timestamp: number): string {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-    hour: 'numeric',
+    hour: '2-digit',
     minute: '2-digit',
-    hour12: true,
   });
 }
 
 /**
- * Format Unix timestamp to relative time (e.g., "2 hours ago", "in 3 days")
+ * Check if election can be modified (add/remove candidates)
  */
-export function formatRelativeTime(timestamp: number): string {
+export function canModifyElection(election: any): boolean {
+  return election.status === ElectionStatus.Draft;
+}
+
+/**
+ * Check if election can be started
+ */
+export function canStartElection(election: any): boolean {
   const now = Math.floor(Date.now() / 1000);
-  const diff = timestamp - now;
-  const absDiff = Math.abs(diff);
+  return (
+    election.status === ElectionStatus.Draft &&
+    election.candidateCount > 0 &&
+    now >= election.startTime
+  );
+}
 
-  const minute = 60;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  const week = 7 * day;
-  const month = 30 * day;
-  const year = 365 * day;
+/**
+ * Check if election can be ended
+ */
+export function canEndElection(election: any): boolean {
+  const now = Math.floor(Date.now() / 1000);
+  return (
+    election.status === ElectionStatus.Active &&
+    now >= election.endTime
+  );
+}
 
-  let value: number;
-  let unit: string;
+/**
+ * Check if election can be finalized
+ */
+export function canFinalizeElection(election: any): boolean {
+  return election.status === ElectionStatus.Ended;
+}
 
-  if (absDiff < minute) {
-    return diff < 0 ? 'just now' : 'in a moment';
-  } else if (absDiff < hour) {
-    value = Math.floor(absDiff / minute);
-    unit = 'minute';
-  } else if (absDiff < day) {
-    value = Math.floor(absDiff / hour);
-    unit = 'hour';
-  } else if (absDiff < week) {
-    value = Math.floor(absDiff / day);
-    unit = 'day';
-  } else if (absDiff < month) {
-    value = Math.floor(absDiff / week);
-    unit = 'week';
-  } else if (absDiff < year) {
-    value = Math.floor(absDiff / month);
-    unit = 'month';
-  } else {
-    value = Math.floor(absDiff / year);
-    unit = 'year';
-  }
+/**
+ * Check if election can be cancelled
+ */
+export function canCancelElection(election: any): boolean {
+  return (
+    election.status === ElectionStatus.Draft ||
+    election.status === ElectionStatus.Active
+  );
+}
 
-  const plural = value !== 1 ? 's' : '';
-  return diff < 0
-    ? `${value} ${unit}${plural} ago`
-    : `in ${value} ${unit}${plural}`;
+/**
+ * Get election progress percentage
+ */
+export function getElectionProgress(election: any): number {
+  const now = Math.floor(Date.now() / 1000);
+  const start = election.startTime;
+  const end = election.endTime;
+
+  if (now < start) return 0;
+  if (now > end) return 100;
+
+  const total = end - start;
+  const elapsed = now - start;
+  return Math.round((elapsed / total) * 100);
 }
 
 /**
  * Get time remaining for election
  */
-export function getTimeRemaining(endTime: number): string {
+export function getTimeRemaining(timestamp: number): string {
   const now = Math.floor(Date.now() / 1000);
-  if (now >= endTime) {
-    return 'Ended';
-  }
-  return formatRelativeTime(endTime);
+  const diff = timestamp - now;
+
+  if (diff <= 0) return 'Ended';
+
+  const days = Math.floor(diff / 86400);
+  const hours = Math.floor((diff % 86400) / 3600);
+  const minutes = Math.floor((diff % 3600) / 60);
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
 }
 
 /**
- * Get time until election starts
+ * Check if voting is currently open
  */
-export function getTimeUntilStart(startTime: number): string {
-  const now = Math.floor(Date.now() / 1000);
-  if (now >= startTime) {
-    return 'Started';
-  }
-  return formatRelativeTime(startTime);
-}
-
-/**
- * Check if election is upcoming (not started yet)
- */
-export function isUpcoming(election: Election): boolean {
-  const now = Math.floor(Date.now() / 1000);
-  return election.status === ElectionStatus.Active && now < election.startTime;
-}
-
-/**
- * Check if election is ongoing (started and not ended)
- */
-export function isOngoing(election: Election): boolean {
+export function isVotingOpen(election: any): boolean {
   const now = Math.floor(Date.now() / 1000);
   return (
     election.status === ElectionStatus.Active &&
@@ -218,53 +145,33 @@ export function isOngoing(election: Election): boolean {
 }
 
 /**
- * Check if election has passed (ended time has passed)
+ * Get election phase description
  */
-export function hasPassed(election: Election): boolean {
+export function getElectionPhase(election: any): string {
   const now = Math.floor(Date.now() / 1000);
-  return now > election.endTime;
-}
 
-/**
- * Calculate voting progress percentage
- */
-export function getVotingProgress(
-  startTime: number,
-  endTime: number,
-  currentTime?: number
-): number {
-  const now = currentTime || Math.floor(Date.now() / 1000);
-  
-  if (now < startTime) return 0;
-  if (now > endTime) return 100;
-  
-  const total = endTime - startTime;
-  const elapsed = now - startTime;
-  
-  return Math.floor((elapsed / total) * 100);
-}
+  if (election.status === ElectionStatus.Draft) {
+    return 'Election is being prepared';
+  }
 
-/**
- * Validate election time range
- */
-export function validateElectionTimes(
-  startTime: number,
-  endTime: number
-): { valid: boolean; error?: string } {
-  const now = Math.floor(Date.now() / 1000);
-  
-  if (startTime <= now) {
-    return { valid: false, error: 'Start time must be in the future' };
+  if (election.status === ElectionStatus.Cancelled) {
+    return 'Election has been cancelled';
   }
-  
-  if (endTime <= startTime) {
-    return { valid: false, error: 'End time must be after start time' };
+
+  if (election.status === ElectionStatus.Finalized) {
+    return 'Results are finalized';
   }
-  
-  const minDuration = 60 * 60; // 1 hour
-  if (endTime - startTime < minDuration) {
-    return { valid: false, error: 'Election must be at least 1 hour long' };
+
+  if (now < election.startTime) {
+    return `Starts in ${getTimeRemaining(election.startTime)}`;
   }
-  
-  return { valid: true };
+
+  if (now > election.endTime) {
+    if (election.status === ElectionStatus.Ended) {
+      return 'Voting ended, awaiting finalization';
+    }
+    return 'Voting has ended';
+  }
+
+  return `Ends in ${getTimeRemaining(election.endTime)}`;
 }

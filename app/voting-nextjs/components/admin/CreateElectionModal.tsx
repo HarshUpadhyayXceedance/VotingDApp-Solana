@@ -4,11 +4,14 @@ import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { SystemProgram } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
 import { SUPER_ADMIN } from '@/lib/constants';
 import {
   getAdminRegistryPda,
   getAdminPda,
   getElectionPda,
+  getCurrentTimestamp,
+  VoterRegistrationType,
 } from '@/lib/helpers';
 import { MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH } from '@/lib/constants';
 import {
@@ -254,8 +257,8 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         .createElection(
           electionTitle,
           electionDescription || '',
-          Math.floor(startTime),
-          Math.floor(endTime),
+          new BN(Math.floor(startTime)),
+          new BN(Math.floor(endTime)),
           voterRegType
         )
         .accountsStrict({

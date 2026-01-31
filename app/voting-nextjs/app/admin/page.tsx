@@ -4,19 +4,15 @@ import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
-import { ADMIN_SEED, SUPER_ADMIN } from '@/lib/constants';
+import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
 import { ElectionStatus, parseElectionStatus } from '@/lib/types';
-import {
-  getElectionStatusLabel,
-  getElectionStatusColor,
-  formatElectionTime,
-} from '@/lib/election-utils';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { CreateElectionModal } from '@/components/admin/CreateElectionModal';
 import { InitializeAdminRegistryModal } from '@/components/admin/InitializeAdminRegistryModal';
-import { Plus, Shield, AlertCircle, Calendar, Users, TrendingUp } from 'lucide-react';
+import { ElectionCard } from '@/components/admin/ElectionCard';
+import { Plus, Shield, AlertCircle, Calendar, Users, TrendingUp, Filter } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminDashboard() {
@@ -31,6 +27,7 @@ export default function AdminDashboard() {
   const [needsInitialization, setNeedsInitialization] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInitModal, setShowInitModal] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | ElectionStatus>('all');
 
   const fetchData = async () => {
     if (!program || !publicKey) return;
@@ -39,28 +36,20 @@ export default function AdminDashboard() {
       setLoading(true);
       setError('');
 
-      // Check if admin registry exists
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
 
       let adminRegistry;
       try {
         // @ts-ignore
         adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
       } catch (e: any) {
-        // Only treat this as "needs initialization" if the account genuinely
-        // doesn't exist.  Anchor / web3.js surfaces that as a specific error
-        // message.  Any other failure (network, deserialisation, …) is a real
-        // error that should be shown to the user.
         const msg: string = e?.message || '';
         const isAccountMissing =
-          msg.includes('does not exist') ||        // "Account does not exist or has no data"
+          msg.includes('does not exist') ||
           msg.includes('Account not found') ||
           msg.includes('not found') ||
           msg.includes('AccountNotInitialized') ||
-          msg.includes('0x0');                     // Solana "not initialized" code
+          msg.includes('0x0');
 
         if (isAccountMissing) {
           setNeedsInitialization(true);
@@ -68,22 +57,16 @@ export default function AdminDashboard() {
           return;
         }
 
-        // Real error — surface it
         console.error('Error fetching admin registry:', e);
-        setError('Failed to connect to the program. Make sure your local validator is running (solana-test-validator) and the program is deployed.');
+        setError('Failed to connect to the program.');
         setLoading(false);
         return;
       }
 
-      // Check if current user is the super admin
       const isSuperAdminUser = publicKey.equals(adminRegistry.superAdmin);
       setIsSuperAdmin(isSuperAdminUser);
 
-      // Check if current user has an admin account
-      const [adminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
+      const [adminPda] = getAdminPda(publicKey, program.programId);
 
       let hasAdminAccount = false;
       try {
@@ -91,20 +74,15 @@ export default function AdminDashboard() {
         const adminAccount = await program.account.admin.fetch(adminPda);
         hasAdminAccount = adminAccount.isActive;
       } catch (e) {
-        // No admin account
         hasAdminAccount = false;
       }
 
-      // Super admin always has access (even without admin account)
-      // Regular admins need an active admin account
       setIsAdmin(isSuperAdminUser || hasAdminAccount);
 
-      // If super admin but no admin account, show a message
       if (isSuperAdminUser && !hasAdminAccount) {
-        setError('You are the super admin but need to create an admin account for yourself. Go to "Manage Admins" and add your own wallet address.');
+        setError('You are the super admin but need to create an admin account. Go to "Manage Admins".');
       }
 
-      // Fetch all elections
       // @ts-ignore
       const electionAccounts = await program.account.election.all();
 
@@ -120,9 +98,7 @@ export default function AdminDashboard() {
         status: parseElectionStatus(account.account.status),
       }));
 
-      // Sort by election ID (newest first)
       electionsData.sort((a: any, b: any) => b.electionId - a.electionId);
-
       setElections(electionsData);
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -136,6 +112,87 @@ export default function AdminDashboard() {
     fetchData();
   }, [program, publicKey]);
 
+  const handleStartElection = async (electionPublicKey: string) => {
+    if (!program || !publicKey) return;
+
+    try {
+      const electionPubkey = new PublicKey(electionPublicKey);
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
+
+      // @ts-ignore
+      const tx = await program.methods
+        .startElection()
+        .accounts({
+          adminRegistry: adminRegistryPda,
+          adminAccount: adminPda,
+          election: electionPubkey,
+          authority: publicKey,
+        })
+        .rpc();
+
+      console.log('✅ Election started:', tx);
+      fetchData();
+    } catch (error: any) {
+      console.error('❌ Error starting election:', error);
+      alert(error.message || 'Failed to start election');
+    }
+  };
+
+  const handleEndElection = async (electionPublicKey: string) => {
+    if (!program || !publicKey) return;
+
+    try {
+      const electionPubkey = new PublicKey(electionPublicKey);
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
+
+      // @ts-ignore
+      const tx = await program.methods
+        .endElection()
+        .accounts({
+          adminRegistry: adminRegistryPda,
+          adminAccount: adminPda,
+          election: electionPubkey,
+          authority: publicKey,
+        })
+        .rpc();
+
+      console.log('✅ Election ended:', tx);
+      fetchData();
+    } catch (error: any) {
+      console.error('❌ Error ending election:', error);
+      alert(error.message || 'Failed to end election');
+    }
+  };
+
+  const handleFinalizeElection = async (electionPublicKey: string) => {
+    if (!program || !publicKey) return;
+
+    try {
+      const electionPubkey = new PublicKey(electionPublicKey);
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
+
+      // @ts-ignore
+      const tx = await program.methods
+        .finalizeElection()
+        .accounts({
+          adminRegistry: adminRegistryPda,
+          adminAccount: adminPda,
+          election: electionPubkey,
+          authority: publicKey,
+        })
+        .rpc();
+
+      console.log('✅ Election finalized:', tx);
+      fetchData();
+    } catch (error: any) {
+      console.error('❌ Error finalizing election:', error);
+      alert(error.message || 'Failed to finalize election');
+    }
+  };
+
   if (!publicKey) {
     return (
       <AppLayout showFooter={false}>
@@ -143,7 +200,7 @@ export default function AdminDashboard() {
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-            <p className="text-gray-400">Please connect your wallet to access the admin dashboard</p>
+            <p className="text-gray-400">Please connect your wallet</p>
           </div>
         </div>
       </AppLayout>
@@ -158,17 +215,16 @@ export default function AdminDashboard() {
             <Shield className="w-20 h-20 text-purple-400 mx-auto mb-6" />
             <h2 className="text-3xl font-bold text-white mb-4">Setup Required</h2>
             <p className="text-gray-400 mb-6">
-              The admin registry needs to be initialized. Click below to become the super admin.
+              The admin registry needs to be initialized.
             </p>
             <Button
               onClick={() => setShowInitModal(true)}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              className="bg-gradient-to-r from-purple-500 to-purple-600"
             >
               <Shield className="w-4 h-4 mr-2" />
-              Initialize Admin Registry
+              Initialize Registry
             </Button>
           </div>
-
           <InitializeAdminRegistryModal
             open={showInitModal}
             onClose={() => setShowInitModal(false)}
@@ -193,10 +249,13 @@ export default function AdminDashboard() {
     );
   }
 
+  const filteredElections = statusFilter === 'all'
+    ? elections
+    : elections.filter(e => e.status === statusFilter);
+
   return (
     <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
       <div className="container mx-auto px-4 py-8 lg:ml-64">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
@@ -204,18 +263,17 @@ export default function AdminDashboard() {
           </div>
           <Button
             onClick={() => setShowCreateModal(true)}
-            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+            className="bg-gradient-to-r from-purple-500 to-purple-600"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Election
           </Button>
         </div>
 
-        {/* Warning if super admin without admin account */}
         {error && error.includes('super admin') && (
           <div className="mb-8 p-6 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-6 h-6 text-yellow-400 flex-shrink-0" />
               <div>
                 <h3 className="font-bold text-yellow-400 mb-2">Action Required</h3>
                 <p className="text-gray-300 mb-4">{error}</p>
@@ -230,7 +288,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
             <div className="flex items-center justify-between">
@@ -257,7 +314,7 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-gray-400 text-sm mb-1">Total Votes</p>
                 <p className="text-3xl font-bold">
-                  {elections.reduce((sum, e) => sum + e.totalVotes, 0)}
+                  {elections.reduce((sum, e) => sum + parseInt(e.totalVotes), 0)}
                 </p>
               </div>
               <Users className="w-12 h-12 text-blue-400 opacity-50" />
@@ -265,69 +322,74 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Elections List */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
-          <div className="p-6 border-b border-gray-700">
-            <h2 className="text-2xl font-bold">Elections</h2>
-          </div>
+        <div className="flex items-center gap-2 mb-6">
+          <Filter className="w-5 h-5 text-gray-400" />
+          <Button
+            onClick={() => setStatusFilter('all')}
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+          >
+            All
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Draft)}
+            variant={statusFilter === ElectionStatus.Draft ? 'default' : 'outline'}
+            size="sm"
+          >
+            Draft
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Active)}
+            variant={statusFilter === ElectionStatus.Active ? 'default' : 'outline'}
+            size="sm"
+          >
+            Active
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Ended)}
+            variant={statusFilter === ElectionStatus.Ended ? 'default' : 'outline'}
+            size="sm"
+          >
+            Ended
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Finalized)}
+            variant={statusFilter === ElectionStatus.Finalized ? 'default' : 'outline'}
+            size="sm"
+          >
+            Finalized
+          </Button>
+        </div>
+
+        <div>
+          <h2 className="text-2xl font-bold mb-4">
+            Elections {statusFilter !== 'all' && `(${statusFilter})`}
+          </h2>
 
           {loading ? (
-            <div className="p-8 text-center">
-              <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto" />
-              <p className="text-gray-400 mt-4">Loading elections...</p>
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
             </div>
-          ) : error && !error.includes('super admin') ? (
-            <div className="p-8 text-center">
-              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-              <p className="text-red-400">{error}</p>
-            </div>
-          ) : elections.length === 0 ? (
-            <div className="p-8 text-center">
+          ) : filteredElections.length === 0 ? (
+            <div className="text-center py-16">
               <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">No elections yet</p>
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                variant="outline"
-                className="mt-4"
-              >
+              <p className="text-gray-400 mb-4">
+                {statusFilter === 'all' ? 'No elections yet' : `No ${statusFilter} elections`}
+              </p>
+              <Button onClick={() => setShowCreateModal(true)} variant="outline">
                 Create Your First Election
               </Button>
             </div>
           ) : (
-            <div className="divide-y divide-gray-700">
-              {elections.map((election) => (
-                <Link
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredElections.map((election) => (
+                <ElectionCard
                   key={election.publicKey}
-                  href={`/admin/elections/${election.publicKey}`}
-                  className="block p-6 hover:bg-gray-700/30 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold">{election.title}</h3>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${getElectionStatusColor(
-                            election.status
-                          )}`}
-                        >
-                          {getElectionStatusLabel(election.status)}
-                        </span>
-                      </div>
-                      {election.description && (
-                        <p className="text-gray-400 mb-3">{election.description}</p>
-                      )}
-                      <div className="flex items-center gap-6 text-sm text-gray-400">
-                        <span>ID: {election.electionId}</span>
-                        <span>Candidates: {election.candidateCount}</span>
-                        <span>Votes: {election.totalVotes}</span>
-                      </div>
-                      <div className="flex items-center gap-6 text-sm text-gray-400 mt-2">
-                        <span>Start: {formatElectionTime(election.startTime)}</span>
-                        <span>End: {formatElectionTime(election.endTime)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+                  election={election}
+                  onStartElection={handleStartElection}
+                  onEndElection={handleEndElection}
+                  onFinalizeElection={handleFinalizeElection}
+                />
               ))}
             </div>
           )}

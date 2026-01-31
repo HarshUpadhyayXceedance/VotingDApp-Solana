@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
-import { ADMIN_SEED, SUPER_ADMIN } from '@/lib/constants';
-import { AdminPermissions, formatAdminPermissions } from '@/lib/types';
+import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
+import { SUPER_ADMIN } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,13 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
+
+interface AdminPermissions {
+  canManageElections: boolean;
+  canManageCandidates: boolean;
+  canManageVoters: boolean;
+  canFinalizeResults: boolean;
+}
 
 export default function ManageAdminsPage() {
   const { publicKey } = useWallet();
@@ -59,10 +66,7 @@ export default function ManageAdminsPage() {
       setError('');
 
       // Fetch admin registry
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
 
       // @ts-ignore
       const registry = await program.account.adminRegistry.fetch(adminRegistryPda);
@@ -74,10 +78,7 @@ export default function ManageAdminsPage() {
 
       // Check if super admin has an admin account and validate permissions
       if (isSuperAdminUser) {
-        const [superAdminPda] = PublicKey.findProgramAddressSync(
-          [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-          program.programId
-        );
+        const [superAdminPda] = getAdminPda(publicKey, program.programId);
         try {
           // @ts-ignore
           const account = await program.account.admin.fetch(superAdminPda);
@@ -103,7 +104,6 @@ export default function ManageAdminsPage() {
         name: account.account.name,
         isActive: account.account.isActive ?? account.account.is_active,
         permissions: account.account.permissions,
-        // Explicitly exclude BN fields like added_at/addedAt
       }));
 
       setAdmins(adminsData);
@@ -127,19 +127,12 @@ export default function ManageAdminsPage() {
       setAdding(true);
       setAddError('');
 
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      const [adminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
 
       console.log('Repairing admin permissions...');
 
-      const fullPermissions: AdminPermissions = {
+      const fullPermissions = {
         canManageElections: true,
         canManageCandidates: true,
         canManageVoters: true,
@@ -148,7 +141,7 @@ export default function ManageAdminsPage() {
 
       // @ts-ignore
       const tx = await program.methods
-        .updateAdminPermissions(fullPermissions) // Pass camelCase struct directly
+        .updateAdminPermissions(fullPermissions)
         .accounts({
           adminRegistry: adminRegistryPda,
           adminAccount: adminPda,
@@ -157,7 +150,6 @@ export default function ManageAdminsPage() {
         .rpc();
 
       console.log('✅ Permissions repaired:', tx);
-      console.log('New Permissions Sent:', fullPermissions);
       setAddSuccess(true);
       setSuperAdminPermissionsOk(true);
 
@@ -186,21 +178,14 @@ export default function ManageAdminsPage() {
       setAdding(true);
       setAddError('');
 
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      const [adminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
 
       console.log('Adding self as admin...');
       console.log('Admin Registry PDA:', adminRegistryPda.toString());
       console.log('Admin PDA:', adminPda.toString());
 
-      const fullPermissions: AdminPermissions = {
+      const fullPermissions = {
         canManageElections: true,
         canManageCandidates: true,
         canManageVoters: true,
@@ -209,7 +194,7 @@ export default function ManageAdminsPage() {
 
       // @ts-ignore
       const tx = await program.methods
-        .addAdmin('Super Admin', fullPermissions) // Use camelCase directly
+        .addAdmin('Super Admin', fullPermissions)
         .accounts({
           adminRegistry: adminRegistryPda,
           adminAccount: adminPda,
@@ -250,15 +235,8 @@ export default function ManageAdminsPage() {
 
       const newAdminPubkey = new PublicKey(newAdminAddress);
 
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      const [newAdminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), newAdminPubkey.toBuffer()],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [newAdminPda] = getAdminPda(newAdminPubkey, program.programId);
 
       console.log('Adding admin...');
       console.log('Admin Registry PDA:', adminRegistryPda.toString());
@@ -269,7 +247,7 @@ export default function ManageAdminsPage() {
 
       // @ts-ignore
       const tx = await program.methods
-        .addAdmin(newAdminName, newAdminPermissions) // Pass camelCase
+        .addAdmin(newAdminName, newAdminPermissions)
         .accounts({
           adminRegistry: adminRegistryPda,
           adminAccount: newAdminPda,
@@ -323,15 +301,8 @@ export default function ManageAdminsPage() {
     try {
       const adminPubkey = new PublicKey(adminAddress);
 
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      const [adminToRemovePda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), adminPubkey.toBuffer()],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminToRemovePda] = getAdminPda(adminPubkey, program.programId);
 
       console.log('Deactivating admin...');
       console.log('Admin to remove:', adminAddress);
@@ -388,7 +359,7 @@ export default function ManageAdminsPage() {
           )}
         </div>
 
-        {/* Super Admin Warning - Need to add self first or fix permissions */}
+        {/* Super Admin Warning */}
         {isSuperAdmin && (!superAdminHasAccount || !superAdminPermissionsOk) && !loading && (
           <div className="mb-8 p-6 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
             <div className="flex items-start gap-4">
@@ -431,7 +402,7 @@ export default function ManageAdminsPage() {
           </div>
         )}
 
-        {/* Success message - only show if everything is perfect */}
+        {/* Success message */}
         {isSuperAdmin && superAdminHasAccount && superAdminPermissionsOk && admins.length > 0 && (
           <div className="mb-8 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
             <div className="flex items-center gap-2 text-green-400">
@@ -664,22 +635,22 @@ export default function ManageAdminsPage() {
                             {String(admin.authority)}
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {admin.permissions.can_manage_elections && (
+                            {admin.permissions.canManageElections && (
                               <span className="px-3 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
                                 Elections
                               </span>
                             )}
-                            {admin.permissions.can_manage_candidates && (
+                            {admin.permissions.canManageCandidates && (
                               <span className="px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">
                                 Candidates
                               </span>
                             )}
-                            {admin.permissions.can_manage_voters && (
+                            {admin.permissions.canManageVoters && (
                               <span className="px-3 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
                                 Voters
                               </span>
                             )}
-                            {admin.permissions.can_finalize_results && (
+                            {admin.permissions.canFinalizeResults && (
                               <span className="px-3 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
                                 Finalize
                               </span>

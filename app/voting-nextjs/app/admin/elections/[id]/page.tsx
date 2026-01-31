@@ -4,16 +4,20 @@ import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
+import { getAdminRegistryPda, getAdminPda, getCandidatePda } from '@/lib/helpers';
 import { parseElectionStatus } from '@/lib/types';
 import {
   getElectionStatusLabel,
   getElectionStatusColor,
   formatElectionTime,
   canModifyElection,
+  canStartElection,
+  canEndElection,
+  canFinalizeElection,
 } from '@/lib/election-utils';
 import { Button } from '@/components/ui/button';
 import { AddCandidateModal } from '@/components/admin/AddCandidateModal';
-import { ElectionLifecycleControls } from '@/components/admin/ElectionLifecycleControls';
+import { CandidateCard } from '@/components/admin/CandidateCard';
 import {
   AlertCircle,
   ArrowLeft,
@@ -22,7 +26,10 @@ import {
   TrendingUp,
   Clock,
   UserPlus,
-  Image as ImageIcon,
+  Play,
+  StopCircle,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -50,13 +57,11 @@ export default function ElectionDetailPage() {
 
       const electionPubkey = new PublicKey(electionId);
 
-      // Fetch election
       // @ts-ignore
       const electionAccount = await program.account.election.fetch(electionPubkey);
 
       const electionData = {
         publicKey: electionId,
-        // Explicitly map keys to primitives
         electionId: electionAccount.electionId.toNumber ? electionAccount.electionId.toNumber() : electionAccount.electionId,
         title: electionAccount.title,
         description: electionAccount.description,
@@ -70,7 +75,6 @@ export default function ElectionDetailPage() {
 
       setElection(electionData);
 
-      // Fetch candidates
       // @ts-ignore
       const candidateAccounts = await program.account.candidate.all([
         {
@@ -88,10 +92,9 @@ export default function ElectionDetailPage() {
         description: account.account.description,
         imageUrl: account.account.imageUrl,
         voteCount: account.account.voteCount.toString(),
-        electionPubkey: account.account.electionPubkey.toString(),
+        electionPubkey: account.account.election.toString(),
       }));
 
-      // Sort by candidate ID
       candidatesData.sort((a: any, b: any) => a.candidateId - b.candidateId);
 
       setCandidates(candidatesData);
@@ -106,6 +109,89 @@ export default function ElectionDetailPage() {
   useEffect(() => {
     fetchElectionData();
   }, [program, electionId]);
+
+  const handleLifecycleAction = async (action: 'start' | 'end' | 'finalize') => {
+    if (!program || !publicKey) return;
+
+    try {
+      const electionPubkey = new PublicKey(electionId);
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
+
+      let tx;
+      if (action === 'start') {
+        // @ts-ignore
+        tx = await program.methods
+          .startElection()
+          .accounts({
+            adminRegistry: adminRegistryPda,
+            adminAccount: adminPda,
+            election: electionPubkey,
+            authority: publicKey,
+          })
+          .rpc();
+      } else if (action === 'end') {
+        // @ts-ignore
+        tx = await program.methods
+          .endElection()
+          .accounts({
+            adminRegistry: adminRegistryPda,
+            adminAccount: adminPda,
+            election: electionPubkey,
+            authority: publicKey,
+          })
+          .rpc();
+      } else if (action === 'finalize') {
+        // @ts-ignore
+        tx = await program.methods
+          .finalizeElection()
+          .accounts({
+            adminRegistry: adminRegistryPda,
+            adminAccount: adminPda,
+            election: electionPubkey,
+            authority: publicKey,
+          })
+          .rpc();
+      }
+
+      console.log(`✅ Election ${action}ed:`, tx);
+      fetchElectionData();
+    } catch (error: any) {
+      console.error(`❌ Error ${action}ing election:`, error);
+      alert(error.message || `Failed to ${action} election`);
+    }
+  };
+
+  const handleDeleteCandidate = async (candidatePublicKey: string) => {
+    if (!confirm('Are you sure you want to remove this candidate?')) return;
+
+    if (!program || !publicKey) return;
+
+    try {
+      const candidatePubkey = new PublicKey(candidatePublicKey);
+      const electionPubkey = new PublicKey(electionId);
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
+
+      // @ts-ignore
+      const tx = await program.methods
+        .removeCandidate()
+        .accounts({
+          adminRegistry: adminRegistryPda,
+          adminAccount: adminPda,
+          election: electionPubkey,
+          candidate: candidatePubkey,
+          authority: publicKey,
+        })
+        .rpc();
+
+      console.log('✅ Candidate removed:', tx);
+      fetchElectionData();
+    } catch (error: any) {
+      console.error('❌ Error removing candidate:', error);
+      alert(error.message || 'Failed to remove candidate');
+    }
+  };
 
   if (!publicKey) {
     return (
@@ -151,7 +237,6 @@ export default function ElectionDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
         <Link href="/admin">
           <Button variant="ghost" className="mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -192,7 +277,37 @@ export default function ElectionDetailPage() {
           </div>
 
           {/* Lifecycle Controls */}
-          <ElectionLifecycleControls election={election} onStatusChange={fetchElectionData} />
+          <div className="flex items-center gap-3">
+            {canStartElection(election) && (
+              <Button
+                onClick={() => handleLifecycleAction('start')}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Start Election
+              </Button>
+            )}
+
+            {canEndElection(election) && (
+              <Button
+                onClick={() => handleLifecycleAction('end')}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <StopCircle className="w-4 h-4 mr-2" />
+                End Election
+              </Button>
+            )}
+
+            {canFinalizeElection(election) && (
+              <Button
+                onClick={() => handleLifecycleAction('finalize')}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Finalize Results
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Stats */}
@@ -220,7 +335,7 @@ export default function ElectionDetailPage() {
               <div>
                 <p className="text-gray-400 text-sm mb-1">Registration</p>
                 <p className="text-xl font-bold">
-                  {election.voterRegistrationType?.Open ? 'Open' : 'Whitelist'}
+                  {election.voterRegistrationType?.open ? 'Open' : 'Whitelist'}
                 </p>
               </div>
               <Users className="w-12 h-12 text-blue-400 opacity-50" />
@@ -256,34 +371,12 @@ export default function ElectionDetailPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
               {candidates.map((candidate) => (
-                <div
+                <CandidateCard
                   key={candidate.publicKey}
-                  className="bg-gray-900/50 border border-gray-700 rounded-lg p-6 hover:border-purple-500/50 transition-colors"
-                >
-                  {candidate.imageUrl && (
-                    <div className="w-full h-48 bg-gray-800 rounded-lg mb-4 overflow-hidden">
-                      <img
-                        src={candidate.imageUrl}
-                        alt={candidate.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold mb-2">{candidate.name}</h3>
-                  <p className="text-gray-400 text-sm mb-4 line-clamp-3">
-                    {candidate.description}
-                  </p>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">ID: {candidate.candidateId}</span>
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-green-400" />
-                      <span className="font-bold text-green-400">{candidate.voteCount} votes</span>
-                    </div>
-                  </div>
-                </div>
+                  candidate={candidate}
+                  canDelete={canModifyElection(election)}
+                  onDelete={handleDeleteCandidate}
+                />
               ))}
             </div>
           )}
