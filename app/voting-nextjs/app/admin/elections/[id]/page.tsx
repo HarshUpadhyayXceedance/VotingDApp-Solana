@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
-import { getAdminRegistryPda, getAdminPda, getCandidatePda } from '@/lib/helpers';
+import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
 import { parseElectionStatus } from '@/lib/types';
 import {
   getElectionStatusLabel,
@@ -18,6 +18,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { AddCandidateModal } from '@/components/admin/AddCandidateModal';
 import { CandidateCard } from '@/components/admin/CandidateCard';
+import { AppLayout } from '@/components/shared/AppLayout';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import {
   AlertCircle,
   ArrowLeft,
@@ -29,14 +31,12 @@ import {
   Play,
   StopCircle,
   CheckCircle,
-  XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 export default function ElectionDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const { publicKey } = useWallet();
   const program = useProgram();
 
@@ -47,6 +47,7 @@ export default function ElectionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showAddCandidateModal, setShowAddCandidateModal] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const fetchElectionData = async () => {
     if (!program || !electionId) return;
@@ -56,6 +57,18 @@ export default function ElectionDetailPage() {
       setError('');
 
       const electionPubkey = new PublicKey(electionId);
+
+      // Check if super admin
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      try {
+        // @ts-ignore
+        const adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
+        if (publicKey) {
+          setIsSuperAdmin(publicKey.equals(adminRegistry.superAdmin));
+        }
+      } catch (e) {
+        // Ignore
+      }
 
       // @ts-ignore
       const electionAccount = await program.account.election.fetch(electionPubkey);
@@ -195,52 +208,58 @@ export default function ElectionDetailPage() {
 
   if (!publicKey) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-          <p className="text-gray-400">Please connect your wallet</p>
+      <AppLayout showFooter={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
+            <p className="text-gray-400">Please connect your wallet</p>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Loading election...</p>
+      <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-400">Loading election...</p>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   if (error || !election) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Error</h2>
-          <p className="text-gray-400">{error || 'Election not found'}</p>
-          <Link href="/admin">
-            <Button variant="outline" className="mt-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
+      <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Error</h2>
+            <p className="text-gray-400">{error || 'Election not found'}</p>
+            <Link href="/admin/elections">
+              <Button variant="outline" className="mt-4">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Elections
+              </Button>
+            </Link>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+    <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
       <div className="container mx-auto px-4 py-8">
-        <Link href="/admin">
+        <Link href="/admin/elections">
           <Button variant="ghost" className="mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
+            Back to Elections
           </Button>
         </Link>
 
@@ -389,6 +408,6 @@ export default function ElectionDetailPage() {
         onSuccess={fetchElectionData}
         electionPublicKey={electionId}
       />
-    </div>
+    </AppLayout>
   );
 }

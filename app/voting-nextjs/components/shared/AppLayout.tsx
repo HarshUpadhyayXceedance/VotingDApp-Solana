@@ -1,38 +1,43 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { Navbar } from './Navbar';
-import { Footer } from './Footer';
+import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
-    children: ReactNode;
-    sidebar?: ReactNode;
-    showFooter?: boolean;
+  children: ReactNode;
+  sidebar?: ReactNode;
+  showFooter?: boolean;
 }
 
 export function AppLayout({ children, sidebar, showFooter = true }: AppLayoutProps) {
-    return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex flex-col">
-            {/* Navbar */}
-            <Navbar />
+  const hasSidebar = !!sidebar;
 
-            {/* Main Content Area */}
-            <div className="flex flex-1">
-                {/* Sidebar (if provided) */}
-                {sidebar && (
-                    <div className="hidden lg:block">
-                        {sidebar}
-                    </div>
-                )}
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+      {/* Sidebar */}
+      {sidebar}
 
-                {/* Main Content */}
-                <main className={`flex-1 ${sidebar ? 'lg:ml-0' : ''}`}>
-                    {children}
-                </main>
-            </div>
+      {/* Main Content */}
+      <main
+        className={cn(
+          'transition-all duration-300',
+          hasSidebar && 'ml-64' // Fixed margin when sidebar exists
+        )}
+      >
+        {children}
+      </main>
 
-            {/* Footer */}
-            {showFooter && <Footer />}
-        </div>
-    );
+      {/* Footer */}
+      {showFooter && (
+        <footer className={cn(
+          'border-t border-gray-800 py-6 transition-all duration-300',
+          hasSidebar && 'ml-64'
+        )}>
+          <div className="container mx-auto px-4 text-center text-gray-400 text-sm">
+            © {new Date().getFullYear()} SolVote. All rights reserved.
+          </div>
+        </footer>
+      )}
+    </div>
+  );
 }

@@ -10,23 +10,21 @@ import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { CreateElectionModal } from '@/components/admin/CreateElectionModal';
-import { InitializeAdminRegistryModal } from '@/components/admin/InitializeAdminRegistryModal';
 import { ElectionCard } from '@/components/admin/ElectionCard';
-import { Plus, Shield, AlertCircle, Calendar, Users, TrendingUp } from 'lucide-react';
+import { Plus, Shield, AlertCircle, Calendar, Filter } from 'lucide-react';
 import Link from 'next/link';
 
-export default function AdminDashboard() {
+export default function ElectionsPage() {
   const { publicKey } = useWallet();
   const program = useProgram();
 
-  const [allElections, setAllElections] = useState<any[]>([]);
+  const [elections, setElections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [needsInitialization, setNeedsInitialization] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showInitModal, setShowInitModal] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | ElectionStatus>('all');
 
   const fetchData = async () => {
     if (!program || !publicKey) return;
@@ -42,20 +40,6 @@ export default function AdminDashboard() {
         // @ts-ignore
         adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
       } catch (e: any) {
-        const msg: string = e?.message || '';
-        const isAccountMissing =
-          msg.includes('does not exist') ||
-          msg.includes('Account not found') ||
-          msg.includes('not found') ||
-          msg.includes('AccountNotInitialized') ||
-          msg.includes('0x0');
-
-        if (isAccountMissing) {
-          setNeedsInitialization(true);
-          setLoading(false);
-          return;
-        }
-
         console.error('Error fetching admin registry:', e);
         setError('Failed to connect to the program.');
         setLoading(false);
@@ -78,10 +62,6 @@ export default function AdminDashboard() {
 
       setIsAdmin(isSuperAdminUser || hasAdminAccount);
 
-      if (isSuperAdminUser && !hasAdminAccount) {
-        setError('You are the super admin but need to create an admin account. Go to "Manage Admins".');
-      }
-
       // @ts-ignore
       const electionAccounts = await program.account.election.all();
 
@@ -98,7 +78,7 @@ export default function AdminDashboard() {
       }));
 
       electionsData.sort((a: any, b: any) => b.electionId - a.electionId);
-      setAllElections(electionsData);
+      setElections(electionsData);
     } catch (error: any) {
       console.error('Error fetching data:', error);
       setError('Failed to load elections');
@@ -206,34 +186,6 @@ export default function AdminDashboard() {
     );
   }
 
-  if (needsInitialization) {
-    return (
-      <AppLayout showFooter={false}>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="max-w-md w-full text-center">
-            <Shield className="w-20 h-20 text-purple-400 mx-auto mb-6" />
-            <h2 className="text-3xl font-bold text-white mb-4">Setup Required</h2>
-            <p className="text-gray-400 mb-6">
-              The admin registry needs to be initialized.
-            </p>
-            <Button
-              onClick={() => setShowInitModal(true)}
-              className="bg-gradient-to-r from-purple-500 to-purple-600"
-            >
-              <Shield className="w-4 h-4 mr-2" />
-              Initialize Registry
-            </Button>
-          </div>
-          <InitializeAdminRegistryModal
-            open={showInitModal}
-            onClose={() => setShowInitModal(false)}
-            onSuccess={fetchData}
-          />
-        </div>
-      </AppLayout>
-    );
-  }
-
   if (!isAdmin) {
     return (
       <AppLayout showFooter={false}>
@@ -248,16 +200,17 @@ export default function AdminDashboard() {
     );
   }
 
-  // Filter only active elections for dashboard
-  const activeElections = allElections.filter(e => e.status === ElectionStatus.Active);
+  const filteredElections = statusFilter === 'all'
+    ? elections
+    : elections.filter(e => e.status === statusFilter);
 
   return (
     <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-            <p className="text-gray-400">Manage elections and view statistics</p>
+            <h1 className="text-4xl font-bold mb-2">All Elections</h1>
+            <p className="text-gray-400">View and manage all elections</p>
           </div>
           <Button
             onClick={() => setShowCreateModal(true)}
@@ -268,81 +221,70 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        {error && error.includes('super admin') && (
-          <div className="mb-8 p-6 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-6 h-6 text-yellow-400 flex-shrink-0" />
-              <div>
-                <h3 className="font-bold text-yellow-400 mb-2">Action Required</h3>
-                <p className="text-gray-300 mb-4">{error}</p>
-                <Link href="/admin/manage-admins">
-                  <Button className="bg-yellow-600 hover:bg-yellow-700">
-                    <Shield className="w-4 h-4 mr-2" />
-                    Go to Manage Admins
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Total Elections</p>
-                <p className="text-3xl font-bold">{allElections.length}</p>
-              </div>
-              <Calendar className="w-12 h-12 text-purple-400 opacity-50" />
-            </div>
-          </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Active Elections</p>
-                <p className="text-3xl font-bold">{activeElections.length}</p>
-              </div>
-              <TrendingUp className="w-12 h-12 text-green-400 opacity-50" />
-            </div>
-          </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Total Votes</p>
-                <p className="text-3xl font-bold">
-                  {allElections.reduce((sum, e) => sum + parseInt(e.totalVotes), 0)}
-                </p>
-              </div>
-              <Users className="w-12 h-12 text-blue-400 opacity-50" />
-            </div>
-          </div>
+        {/* Filter Buttons */}
+        <div className="flex items-center gap-2 mb-6">
+          <Filter className="w-5 h-5 text-gray-400" />
+          <Button
+            onClick={() => setStatusFilter('all')}
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+          >
+            All ({elections.length})
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Draft)}
+            variant={statusFilter === ElectionStatus.Draft ? 'default' : 'outline'}
+            size="sm"
+          >
+            Draft ({elections.filter(e => e.status === ElectionStatus.Draft).length})
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Active)}
+            variant={statusFilter === ElectionStatus.Active ? 'default' : 'outline'}
+            size="sm"
+          >
+            Active ({elections.filter(e => e.status === ElectionStatus.Active).length})
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Ended)}
+            variant={statusFilter === ElectionStatus.Ended ? 'default' : 'outline'}
+            size="sm"
+          >
+            Ended ({elections.filter(e => e.status === ElectionStatus.Ended).length})
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Finalized)}
+            variant={statusFilter === ElectionStatus.Finalized ? 'default' : 'outline'}
+            size="sm"
+          >
+            Finalized ({elections.filter(e => e.status === ElectionStatus.Finalized).length})
+          </Button>
         </div>
 
+        {/* Elections Grid */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">Active Elections</h2>
-            <Link href="/admin/elections">
-              <Button variant="outline" size="sm">
-                View All Elections
-              </Button>
-            </Link>
-          </div>
-
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
             </div>
-          ) : activeElections.length === 0 ? (
+          ) : error ? (
             <div className="text-center py-16">
-              <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">No active elections</p>
+              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+              <p className="text-red-400">{error}</p>
+            </div>
+          ) : filteredElections.length === 0 ? (
+            <div className="text-center py-16">
+              <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400 mb-4">
+                {statusFilter === 'all' ? 'No elections yet' : `No ${statusFilter} elections`}
+              </p>
               <Button onClick={() => setShowCreateModal(true)} variant="outline">
                 Create Your First Election
               </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {activeElections.map((election) => (
+              {filteredElections.map((election) => (
                 <ElectionCard
                   key={election.publicKey}
                   election={election}

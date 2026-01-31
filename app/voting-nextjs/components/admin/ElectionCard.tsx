@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Calendar,
   Users,
@@ -12,8 +11,6 @@ import {
   Play,
   StopCircle,
   CheckCircle,
-  XCircle,
-  Edit,
   Eye,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -32,7 +29,6 @@ interface ElectionCardProps {
   onStartElection?: (electionId: string) => void;
   onEndElection?: (electionId: string) => void;
   onFinalizeElection?: (electionId: string) => void;
-  onCancelElection?: (electionId: string) => void;
 }
 
 export function ElectionCard({
@@ -40,7 +36,6 @@ export function ElectionCard({
   onStartElection,
   onEndElection,
   onFinalizeElection,
-  onCancelElection,
 }: ElectionCardProps) {
   const [loading, setLoading] = useState(false);
 
@@ -103,9 +98,9 @@ export function ElectionCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 pt-4 border-t border-gray-700">
-        {/* View Details */}
-        <Link href={`/admin/elections/${election.publicKey}`} className="flex-1">
+      <div className="flex flex-col gap-2 pt-4 border-t border-gray-700">
+        {/* View Details Button */}
+        <Link href={`/admin/elections/${election.publicKey}`} className="w-full">
           <Button
             variant="outline"
             className="w-full border-gray-600 hover:border-purple-500"
@@ -116,42 +111,44 @@ export function ElectionCard({
           </Button>
         </Link>
 
-        {/* Lifecycle Actions */}
-        {canStartElection(election) && onStartElection && (
-          <Button
-            onClick={() => handleAction(() => onStartElection(election.publicKey))}
-            disabled={loading}
-            className="bg-green-600 hover:bg-green-700"
-            size="sm"
-          >
-            <Play className="w-4 h-4 mr-2" />
-            Start
-          </Button>
-        )}
+        {/* Lifecycle Action Buttons */}
+        <div className="flex gap-2">
+          {canStartElection(election) && onStartElection && (
+            <Button
+              onClick={() => handleAction(() => onStartElection(election.publicKey))}
+              disabled={loading}
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              size="sm"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Start
+            </Button>
+          )}
 
-        {canEndElection(election) && onEndElection && (
-          <Button
-            onClick={() => handleAction(() => onEndElection(election.publicKey))}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700"
-            size="sm"
-          >
-            <StopCircle className="w-4 h-4 mr-2" />
-            End
-          </Button>
-        )}
+          {canEndElection(election) && onEndElection && (
+            <Button
+              onClick={() => handleAction(() => onEndElection(election.publicKey))}
+              disabled={loading}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              size="sm"
+            >
+              <StopCircle className="w-4 h-4 mr-2" />
+              End
+            </Button>
+          )}
 
-        {canFinalizeElection(election) && onFinalizeElection && (
-          <Button
-            onClick={() => handleAction(() => onFinalizeElection(election.publicKey))}
-            disabled={loading}
-            className="bg-purple-600 hover:bg-purple-700"
-            size="sm"
-          >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Finalize
-          </Button>
-        )}
+          {canFinalizeElection(election) && onFinalizeElection && (
+            <Button
+              onClick={() => handleAction(() => onFinalizeElection(election.publicKey))}
+              disabled={loading}
+              className="flex-1 bg-purple-600 hover:bg-purple-700"
+              size="sm"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Finalize
+            </Button>
+          )}
+        </div>
       </div>
     </Card>
   );
