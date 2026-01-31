@@ -64,12 +64,12 @@ export function AdminSidebar({ isSuperAdmin = false }: AdminSidebarProps) {
   return (
     <div
       className={cn(
-        'fixed left-0 top-0 h-full bg-gray-900 border-r border-gray-800 transition-all duration-300 z-40 flex flex-col',
+        'fixed left-0 top-16 h-[calc(100vh-4rem)] bg-gray-900 border-r border-gray-800 transition-all duration-300 z-40 flex flex-col',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Navigation Items */}
-      <nav className="flex-1 px-2 pt-20 pb-4">
+      <nav className="flex-1 px-2 pt-4 pb-4 overflow-y-auto">
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive = item.exact 

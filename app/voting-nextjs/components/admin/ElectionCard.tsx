@@ -48,6 +48,12 @@ export function ElectionCard({
     }
   };
 
+  // Check if we should show any action buttons
+  const showStart = canStartElection(election);
+  const showEnd = canEndElection(election) || election.status === ElectionStatus.Active;
+  const showFinalize = canFinalizeElection(election);
+  const hasActions = showStart || showEnd || showFinalize;
+
   return (
     <Card className="bg-gray-800/50 border-gray-700 hover:border-purple-500/50 transition-all p-6">
       {/* Header */}
@@ -99,7 +105,7 @@ export function ElectionCard({
 
       {/* Actions */}
       <div className="flex flex-col gap-2 pt-4 border-t border-gray-700">
-        {/* View Details Button */}
+        {/* View Details Button - Always Show */}
         <Link href={`/admin/elections/${election.publicKey}`} className="w-full">
           <Button
             variant="outline"
@@ -112,43 +118,45 @@ export function ElectionCard({
         </Link>
 
         {/* Lifecycle Action Buttons */}
-        <div className="flex gap-2">
-          {canStartElection(election) && onStartElection && (
-            <Button
-              onClick={() => handleAction(() => onStartElection(election.publicKey))}
-              disabled={loading}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              size="sm"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Start
-            </Button>
-          )}
+        {hasActions && (
+          <div className="flex gap-2">
+            {showStart && onStartElection && (
+              <Button
+                onClick={() => handleAction(() => onStartElection(election.publicKey))}
+                disabled={loading}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                size="sm"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Start
+              </Button>
+            )}
 
-          {canEndElection(election) && onEndElection && (
-            <Button
-              onClick={() => handleAction(() => onEndElection(election.publicKey))}
-              disabled={loading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
-              size="sm"
-            >
-              <StopCircle className="w-4 h-4 mr-2" />
-              End
-            </Button>
-          )}
+            {showEnd && onEndElection && (
+              <Button
+                onClick={() => handleAction(() => onEndElection(election.publicKey))}
+                disabled={loading}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                size="sm"
+              >
+                <StopCircle className="w-4 h-4 mr-2" />
+                End
+              </Button>
+            )}
 
-          {canFinalizeElection(election) && onFinalizeElection && (
-            <Button
-              onClick={() => handleAction(() => onFinalizeElection(election.publicKey))}
-              disabled={loading}
-              className="flex-1 bg-purple-600 hover:bg-purple-700"
-              size="sm"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Finalize
-            </Button>
-          )}
-        </div>
+            {showFinalize && onFinalizeElection && (
+              <Button
+                onClick={() => handleAction(() => onFinalizeElection(election.publicKey))}
+                disabled={loading}
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                size="sm"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Finalize
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </Card>
   );

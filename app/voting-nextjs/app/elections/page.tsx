@@ -4,261 +4,333 @@ import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
-import {
-    parseElectionStatus,
-    parseVoterRegistrationType,
-    ElectionStatus,
-    VoterRegistrationType
-} from '@/lib/types';
-import {
-    getElectionStatusLabel,
-    getElectionStatusColor,
-    formatElectionTime,
-} from '@/lib/election-utils';
-import { AppLayout } from '@/components/shared/AppLayout';
-import { ElectionsSidebar } from '@/components/shared/ElectionsSidebar';
+import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
+import { ElectionStatus, parseElectionStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import {
-    Vote,
-    Calendar,
-    Users,
-    TrendingUp,
-    Clock,
-    CheckCircle2,
-    XCircle,
-    AlertCircle
-} from 'lucide-react';
-import Link from 'next/link';
+import { AppLayout } from '@/components/shared/AppLayout';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { CreateElectionModal } from '@/components/admin/CreateElectionModal';
+import { ElectionCard } from '@/components/admin/ElectionCard';
+import { Plus, AlertCircle, Calendar, Filter } from 'lucide-react';
 
 export default function ElectionsPage() {
-    const { publicKey } = useWallet();
-    const program = useProgram();
+  const { publicKey } = useWallet();
+  const program = useProgram();
 
-    const [elections, setElections] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+  const [elections, setElections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | ElectionStatus>('all');
 
-    const fetchElections = async () => {
-        if (!program) return;
+  const fetchData = async () => {
+    if (!program || !publicKey) return;
 
-        try {
-            setLoading(true);
-            setError('');
+    try {
+      setLoading(true);
+      setError('');
 
-            // Fetch all elections
-            // @ts-ignore
-            const electionAccounts = await program.account.election.all();
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
 
-            const electionsData = electionAccounts.map((account: any) => ({
-                publicKey: account.publicKey.toString(),
-                ...account.account,
-                status: parseElectionStatus(account.account.status),
-                voterRegistrationType: parseVoterRegistrationType(account.account.voterRegistrationType),
-            }));
+      let adminRegistry;
+      try {
+        // @ts-ignore
+        adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
+      } catch (e: any) {
+        console.error('Error fetching admin registry:', e);
+        setError('Failed to connect to the program.');
+        setLoading(false);
+        return;
+      }
 
-            // Sort by election ID (newest first)
-            electionsData.sort((a: any, b: any) => b.electionId - a.electionId);
+      const isSuperAdminUser = publicKey.equals(adminRegistry.superAdmin);
+      setIsSuperAdmin(isSuperAdminUser);
 
-            setElections(electionsData);
-        } catch (error: any) {
-            console.error('Error fetching elections:', error);
-            setError('Failed to load elections');
-        } finally {
-            setLoading(false);
-        }
-    };
+      const [adminPda] = getAdminPda(publicKey, program.programId);
 
-    useEffect(() => {
-        fetchElections();
-    }, [program]);
+      let hasAdminAccount = false;
+      try {
+        // @ts-ignore
+        const adminAccount = await program.account.admin.fetch(adminPda);
+        hasAdminAccount = adminAccount.isActive;
+      } catch (e) {
+        hasAdminAccount = false;
+      }
 
-    const activeElections = elections.filter(e => e.status === ElectionStatus.Active);
-    const upcomingElections = elections.filter(e => e.status === ElectionStatus.Draft);
-    const completedElections = elections.filter(
-        e => e.status === ElectionStatus.Ended ||
-            e.status === ElectionStatus.Finalized
-    );
+      setIsAdmin(isSuperAdminUser || hasAdminAccount);
 
+      // @ts-ignore
+      const electionAccounts = await program.account.election.all();
+
+      const electionsData = electionAccounts.map((account: any) => {
+        // Convert BN to number safely
+        const electionId = account.account.electionId?.toNumber 
+          ? account.account.electionId.toNumber() 
+          : Number(account.account.electionId);
+        
+        const startTime = account.account.startTime?.toNumber 
+          ? account.account.startTime.toNumber() 
+          : Number(account.account.startTime);
+        
+        const endTime = account.account.endTime?.toNumber 
+          ? account.account.endTime.toNumber() 
+          : Number(account.account.endTime);
+        
+        const totalVotes = account.account.totalVotes?.toString 
+          ? account.account.totalVotes.toString() 
+          : String(account.account.totalVotes);
+        
+        const candidateCount = account.account.candidateCount?.toString 
+          ? account.account.candidateCount.toString() 
+          : String(account.account.candidateCount);
+
+        return {
+          publicKey: account.publicKey.toString(),
+          electionId,
+          title: account.account.title,
+          description: account.account.description,
+          startTime,
+          endTime,
+          totalVotes,
+          candidateCount,
+          status: parseElectionStatus(account.account.status),
+        };
+      });
+
+      electionsData.sort((a: any, b: any) => b.electionId - a.electionId);
+      setElections(electionsData);
+    } catch (error: any) {
+      console.error('Error fetching data:', error);
+      setError('Failed to load elections');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [program, publicKey]);
+
+  const handleStartElection = async (electionPublicKey: string) => {
+    if (!program || !publicKey) return;
+
+    try {
+      const electionPubkey = new PublicKey(electionPublicKey);
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
+
+      // @ts-ignore
+      const tx = await program.methods
+        .startElection()
+        .accounts({
+          adminRegistry: adminRegistryPda,
+          adminAccount: adminPda,
+          election: electionPubkey,
+          authority: publicKey,
+        })
+        .rpc();
+
+      console.log('✅ Election started:', tx);
+      fetchData();
+    } catch (error: any) {
+      console.error('❌ Error starting election:', error);
+      alert(error.message || 'Failed to start election');
+    }
+  };
+
+  const handleEndElection = async (electionPublicKey: string) => {
+    if (!program || !publicKey) return;
+
+    try {
+      const electionPubkey = new PublicKey(electionPublicKey);
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
+
+      // @ts-ignore
+      const tx = await program.methods
+        .endElection()
+        .accounts({
+          adminRegistry: adminRegistryPda,
+          adminAccount: adminPda,
+          election: electionPubkey,
+          authority: publicKey,
+        })
+        .rpc();
+
+      console.log('✅ Election ended:', tx);
+      fetchData();
+    } catch (error: any) {
+      console.error('❌ Error ending election:', error);
+      alert(error.message || 'Failed to end election');
+    }
+  };
+
+  const handleFinalizeElection = async (electionPublicKey: string) => {
+    if (!program || !publicKey) return;
+
+    try {
+      const electionPubkey = new PublicKey(electionPublicKey);
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
+
+      // @ts-ignore
+      const tx = await program.methods
+        .finalizeElection()
+        .accounts({
+          adminRegistry: adminRegistryPda,
+          adminAccount: adminPda,
+          election: electionPubkey,
+          authority: publicKey,
+        })
+        .rpc();
+
+      console.log('✅ Election finalized:', tx);
+      fetchData();
+    } catch (error: any) {
+      console.error('❌ Error finalizing election:', error);
+      alert(error.message || 'Failed to finalize election');
+    }
+  };
+
+  if (!publicKey) {
     return (
-        <AppLayout sidebar={<ElectionsSidebar />} showFooter={false}>
-            <div className="container mx-auto px-4 py-8 lg:ml-64">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold mb-2">Elections</h1>
-                    <p className="text-gray-400">Browse and participate in active elections</p>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <Card className="bg-gray-800/50 border-gray-700 p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-gray-400 text-sm mb-1">Total Elections</p>
-                                <p className="text-3xl font-bold">{elections.length}</p>
-                            </div>
-                            <Vote className="w-12 h-12 text-purple-400 opacity-50" />
-                        </div>
-                    </Card>
-                    <Card className="bg-gray-800/50 border-gray-700 p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-gray-400 text-sm mb-1">Active Now</p>
-                                <p className="text-3xl font-bold">{activeElections.length}</p>
-                            </div>
-                            <TrendingUp className="w-12 h-12 text-green-400 opacity-50" />
-                        </div>
-                    </Card>
-                    <Card className="bg-gray-800/50 border-gray-700 p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-gray-400 text-sm mb-1">Upcoming</p>
-                                <p className="text-3xl font-bold">{upcomingElections.length}</p>
-                            </div>
-                            <Clock className="w-12 h-12 text-blue-400 opacity-50" />
-                        </div>
-                    </Card>
-                    <Card className="bg-gray-800/50 border-gray-700 p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-gray-400 text-sm mb-1">Completed</p>
-                                <p className="text-3xl font-bold">{completedElections.length}</p>
-                            </div>
-                            <CheckCircle2 className="w-12 h-12 text-gray-400 opacity-50" />
-                        </div>
-                    </Card>
-                </div>
-
-                {/* Wallet Connection Notice */}
-                {!publicKey && (
-                    <div className="mb-8 p-6 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                        <div className="flex items-start gap-3">
-                            <AlertCircle className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
-                            <div>
-                                <h3 className="font-bold text-blue-400 mb-2">Connect Your Wallet</h3>
-                                <p className="text-gray-300">
-                                    Connect your wallet to participate in elections and view your voting history.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Active Elections */}
-                {activeElections.length > 0 && (
-                    <div className="mb-8">
-                        <h2 className="text-2xl font-bold mb-4">Active Elections</h2>
-                        <div className="grid gap-6">
-                            {activeElections.map((election) => (
-                                <Card key={election.publicKey} className="bg-gray-800/50 border-gray-700 p-6 hover:border-purple-500 transition-all">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="text-2xl font-bold">{election.title}</h3>
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getElectionStatusColor(election.status)}`}>
-                                                    {getElectionStatusLabel(election.status)}
-                                                </span>
-                                            </div>
-                                            {election.description && (
-                                                <p className="text-gray-400 mb-4">{election.description}</p>
-                                            )}
-                                            <div className="flex flex-wrap items-center gap-6 text-sm text-gray-400">
-                                                <div className="flex items-center gap-2">
-                                                    <Users className="w-4 h-4" />
-                                                    <span>{election.candidateCount} Candidates</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Vote className="w-4 h-4" />
-                                                    <span>{election.totalVotes} Votes</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="w-4 h-4" />
-                                                    <span>Ends: {formatElectionTime(election.endTime)}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {election.voterRegistrationType === VoterRegistrationType.Open ? (
-                                                        <>
-                                                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                                                            <span className="text-green-400">Open Voting</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <XCircle className="w-4 h-4 text-yellow-400" />
-                                                            <span className="text-yellow-400">Whitelist Only</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <Link href={`/elections/${election.publicKey}`}>
-                                            <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
-                                                View & Vote
-                                            </Button>
-                                        </Link>
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* All Elections */}
-                <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
-                    <div className="p-6 border-b border-gray-700">
-                        <h2 className="text-2xl font-bold">All Elections</h2>
-                    </div>
-
-                    {loading ? (
-                        <div className="p-8 text-center">
-                            <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto" />
-                            <p className="text-gray-400 mt-4">Loading elections...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="p-8 text-center">
-                            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                            <p className="text-red-400">{error}</p>
-                        </div>
-                    ) : elections.length === 0 ? (
-                        <div className="p-8 text-center">
-                            <Vote className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                            <p className="text-gray-400">No elections available</p>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-gray-700">
-                            {elections.map((election) => (
-                                <Link
-                                    key={election.publicKey}
-                                    href={`/elections/${election.publicKey}`}
-                                    className="block p-6 hover:bg-gray-700/30 transition-colors"
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="text-xl font-bold">{election.title}</h3>
-                                                <span
-                                                    className={`px-3 py-1 rounded-full text-xs font-semibold ${getElectionStatusColor(
-                                                        election.status
-                                                    )}`}
-                                                >
-                                                    {getElectionStatusLabel(election.status)}
-                                                </span>
-                                            </div>
-                                            {election.description && (
-                                                <p className="text-gray-400 mb-3 line-clamp-2">{election.description}</p>
-                                            )}
-                                            <div className="flex items-center gap-6 text-sm text-gray-400">
-                                                <span>Candidates: {election.candidateCount}</span>
-                                                <span>Votes: {election.totalVotes}</span>
-                                                <span>{formatElectionTime(election.startTime)} - {formatElectionTime(election.endTime)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </AppLayout>
+      <AppLayout showFooter={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
+            <p className="text-gray-400">Please connect your wallet</p>
+          </div>
+        </div>
+      </AppLayout>
     );
+  }
+
+  if (!isAdmin) {
+    return (
+      <AppLayout showFooter={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
+            <p className="text-gray-400">You are not an admin</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const filteredElections = statusFilter === 'all'
+    ? elections
+    : elections.filter(e => e.status === statusFilter);
+
+  // Calculate counts safely
+  const draftCount = elections.filter(e => e.status === ElectionStatus.Draft).length;
+  const activeCount = elections.filter(e => e.status === ElectionStatus.Active).length;
+  const endedCount = elections.filter(e => e.status === ElectionStatus.Ended).length;
+  const finalizedCount = elections.filter(e => e.status === ElectionStatus.Finalized).length;
+
+  return (
+    <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">All Elections</h1>
+            <p className="text-gray-400">View and manage all elections</p>
+          </div>
+          <Button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-gradient-to-r from-purple-500 to-purple-600"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Election
+          </Button>
+        </div>
+
+        {/* Filter Buttons */}
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
+          <Filter className="w-5 h-5 text-gray-400" />
+          <Button
+            onClick={() => setStatusFilter('all')}
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+          >
+            All ({elections.length})
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Draft)}
+            variant={statusFilter === ElectionStatus.Draft ? 'default' : 'outline'}
+            size="sm"
+          >
+            Draft ({draftCount})
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Active)}
+            variant={statusFilter === ElectionStatus.Active ? 'default' : 'outline'}
+            size="sm"
+          >
+            Active ({activeCount})
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Ended)}
+            variant={statusFilter === ElectionStatus.Ended ? 'default' : 'outline'}
+            size="sm"
+          >
+            Ended ({endedCount})
+          </Button>
+          <Button
+            onClick={() => setStatusFilter(ElectionStatus.Finalized)}
+            variant={statusFilter === ElectionStatus.Finalized ? 'default' : 'outline'}
+            size="sm"
+          >
+            Finalized ({finalizedCount})
+          </Button>
+        </div>
+
+        {/* Elections Grid */}
+        <div>
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-16">
+              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+              <p className="text-red-400">{error}</p>
+            </div>
+          ) : filteredElections.length === 0 ? (
+            <div className="text-center py-16">
+              <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400 mb-4">
+                {statusFilter === 'all' ? 'No elections yet' : `No ${statusFilter} elections`}
+              </p>
+              <Button onClick={() => setShowCreateModal(true)} variant="outline">
+                Create Your First Election
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredElections.map((election) => (
+                <ElectionCard
+                  key={election.publicKey}
+                  election={election}
+                  onStartElection={handleStartElection}
+                  onEndElection={handleEndElection}
+                  onFinalizeElection={handleFinalizeElection}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <CreateElectionModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={fetchData}
+      />
+    </AppLayout>
+  );
 }
