@@ -8,7 +8,6 @@ import {
 import {
   WalletModalProvider,
 } from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl } from '@solana/web3.js';
 
 // Import default styles (REQUIRED)
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -18,8 +17,10 @@ interface Props {
 }
 
 export function WalletContextProvider({ children }: Props) {
-  // ✅ Devnet endpoint
-  const endpoint = useMemo(() => clusterApiUrl('devnet'), []);
+  // ✅ Localnet endpoint — matches Anchor.toml cluster = "localnet"
+  //    Change this to clusterApiUrl('devnet') or clusterApiUrl('mainnet-beta')
+  //    when you deploy to a public network.
+  const endpoint = useMemo(() => 'http://localhost:8899', []);
 
   // ✅ Wallets - empty array allows auto-detection of Standard Wallets (Phantom, etc.)
   const wallets = useMemo(

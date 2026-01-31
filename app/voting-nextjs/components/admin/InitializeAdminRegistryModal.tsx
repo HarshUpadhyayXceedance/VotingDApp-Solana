@@ -72,26 +72,29 @@ export function InitializeAdminRegistryModal({
         onSuccess();
       }, 2000);
     } catch (error: any) {
-      let errorMsg = 'Failed to initialize admin registry';
-      let isKnownError = false;
+      const msg: string = error?.message || '';
 
-      if (error.message?.includes('already in use') || error.message?.includes('custom program error: 0x0')) {
-        errorMsg = 'Admin registry already initialized';
-        isKnownError = true;
-      } else if (error.message?.includes('insufficient')) {
-        errorMsg = 'Insufficient SOL. Please get more SOL from a faucet.';
-        isKnownError = true;
-      } else if (error.message) {
-        errorMsg = error.message;
+      // "already in use" means the registry already exists on-chain.
+      // This is not an error from the user's perspective — treat it as
+      // success and let the dashboard reload so it picks up the existing
+      // registry.
+      if (msg.includes('already in use') || msg.includes('custom program error: 0x0')) {
+        console.log('ℹ️ Admin registry already exists — loading dashboard.');
+        setSuccess(true);
+
+        setTimeout(() => {
+          setSuccess(false);
+          onSuccess(); // <-- this triggers fetchData() in the parent, which will now succeed
+        }, 1500);
+        return;
       }
 
-      if (isKnownError) {
-        console.log(`ℹ️ ${errorMsg}`);
+      if (msg.includes('insufficient')) {
+        setError('Insufficient SOL. Please get more SOL from a faucet.');
       } else {
         console.error('❌ Error initializing admin registry:', error);
+        setError(msg || 'Failed to initialize admin registry');
       }
-
-      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -121,8 +124,8 @@ export function InitializeAdminRegistryModal({
         {success ? (
           <div className="py-8 text-center">
             <CheckCircle2 className="w-16 h-16 text-green-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">Registry Initialized!</h3>
-            <p className="text-gray-400">You are now the super admin.</p>
+            <h3 className="text-xl font-bold text-white mb-2">Registry Ready!</h3>
+            <p className="text-gray-400">Loading your dashboard…</p>
           </div>
         ) : (
           <>

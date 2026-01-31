@@ -49,9 +49,28 @@ export default function AdminDashboard() {
       try {
         // @ts-ignore
         adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
-      } catch (e) {
-        // Admin registry doesn't exist
-        setNeedsInitialization(true);
+      } catch (e: any) {
+        // Only treat this as "needs initialization" if the account genuinely
+        // doesn't exist.  Anchor / web3.js surfaces that as a specific error
+        // message.  Any other failure (network, deserialisation, …) is a real
+        // error that should be shown to the user.
+        const msg: string = e?.message || '';
+        const isAccountMissing =
+          msg.includes('does not exist') ||        // "Account does not exist or has no data"
+          msg.includes('Account not found') ||
+          msg.includes('not found') ||
+          msg.includes('AccountNotInitialized') ||
+          msg.includes('0x0');                     // Solana "not initialized" code
+
+        if (isAccountMissing) {
+          setNeedsInitialization(true);
+          setLoading(false);
+          return;
+        }
+
+        // Real error — surface it
+        console.error('Error fetching admin registry:', e);
+        setError('Failed to connect to the program. Make sure your local validator is running (solana-test-validator) and the program is deployed.');
         setLoading(false);
         return;
       }
@@ -91,14 +110,13 @@ export default function AdminDashboard() {
 
       const electionsData = electionAccounts.map((account: any) => ({
         publicKey: account.publicKey.toString(),
-        // Explicitly map fields to primitives
         electionId: account.account.electionId.toNumber ? account.account.electionId.toNumber() : account.account.electionId,
         title: account.account.title,
         description: account.account.description,
-        startTime: account.account.startTime.toNumber(), // Convert BN to number for formatting
-        endTime: account.account.endTime.toNumber(),     // Convert BN to number for formatting
-        totalVotes: account.account.totalVotes.toString(), // Keep large counts as string
-        candidateCount: account.account.candidateCount.toString(), // Keep counts as string
+        startTime: account.account.startTime.toNumber(),
+        endTime: account.account.endTime.toNumber(),
+        totalVotes: account.account.totalVotes.toString(),
+        candidateCount: account.account.candidateCount.toString(),
         status: parseElectionStatus(account.account.status),
       }));
 
