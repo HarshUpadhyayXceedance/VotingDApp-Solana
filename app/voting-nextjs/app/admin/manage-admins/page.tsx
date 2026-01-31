@@ -342,7 +342,7 @@ export default function ManageAdminsPage() {
 
   return (
     <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
-      <div className="container mx-auto px-4 py-8 lg:ml-64">
+      <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">Manage Admins</h1>
@@ -635,22 +635,22 @@ export default function ManageAdminsPage() {
                             {String(admin.authority)}
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {admin.permissions.canManageElections && (
+                            {admin.permissions.can_manage_elections && (
                               <span className="px-3 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
                                 Elections
                               </span>
                             )}
-                            {admin.permissions.canManageCandidates && (
+                            {admin.permissions.can_manage_candidates && (
                               <span className="px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">
                                 Candidates
                               </span>
                             )}
-                            {admin.permissions.canManageVoters && (
+                            {admin.permissions.can_manage_voters && (
                               <span className="px-3 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
                                 Voters
                               </span>
                             )}
-                            {admin.permissions.canFinalizeResults && (
+                            {admin.permissions.can_finalize_results && (
                               <span className="px-3 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
                                 Finalize
                               </span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -22,6 +22,13 @@ interface AdminSidebarProps {
 export function AdminSidebar({ isSuperAdmin = false }: AdminSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+
+  // Dispatch custom event when sidebar width changes
+  useEffect(() => {
+    const width = collapsed ? 64 : 256; // w-16 = 64px, w-64 = 256px
+    const event = new CustomEvent('sidebarResize', { detail: { width } });
+    window.dispatchEvent(event);
+  }, [collapsed]);
 
   const navItems = [
     {

@@ -1,11 +1,9 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Vote, Moon } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useState } from 'react';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -16,6 +14,17 @@ interface AppLayoutProps {
 export function AppLayout({ children, sidebar, showFooter = true }: AppLayoutProps) {
   const hasSidebar = !!sidebar;
   const [isDark, setIsDark] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(256); // Default: 256px (w-64)
+
+  useEffect(() => {
+    // Listen for sidebar width changes via custom event
+    const handleSidebarResize = (e: CustomEvent) => {
+      setSidebarWidth(e.detail.width);
+    };
+
+    window.addEventListener('sidebarResize' as any, handleSidebarResize);
+    return () => window.removeEventListener('sidebarResize' as any, handleSidebarResize);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
@@ -69,29 +78,27 @@ export function AppLayout({ children, sidebar, showFooter = true }: AppLayoutPro
         </div>
       </nav>
 
-      {/* Sidebar - Below Navbar */}
-      {sidebar && (
-        <div className="pt-16">
-          {sidebar}
-        </div>
-      )}
+      {/* Sidebar - Below Navbar, Fixed Position */}
+      {sidebar}
 
-      {/* Main Content */}
+      {/* Main Content - Dynamic margin based on sidebar width */}
       <main
-        className={cn(
-          'pt-16', // Padding for navbar
-          hasSidebar && 'ml-64' // Margin for sidebar
-        )}
+        className="pt-16 transition-all duration-300 min-h-screen"
+        style={{
+          marginLeft: hasSidebar ? `${sidebarWidth}px` : '0'
+        }}
       >
         {children}
       </main>
 
-      {/* Footer */}
+      {/* Footer - Dynamic margin based on sidebar width */}
       {showFooter && (
-        <footer className={cn(
-          'border-t border-gray-800 py-6',
-          hasSidebar && 'ml-64'
-        )}>
+        <footer 
+          className="border-t border-gray-800 py-6 transition-all duration-300"
+          style={{
+            marginLeft: hasSidebar ? `${sidebarWidth}px` : '0'
+          }}
+        >
           <div className="container mx-auto px-4 text-center text-gray-400 text-sm">
             © {new Date().getFullYear()} SolVote. All rights reserved.
           </div>
