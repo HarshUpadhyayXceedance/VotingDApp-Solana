@@ -46,19 +46,36 @@ pub fn create_election(
     voter_registration_type: VoterRegistrationType,
 ) -> Result<()> {
     require!(!ctx.accounts.admin_registry.paused, VotingError::SystemPaused);
-    
+
+    // Validate title (required, non-empty)
+    require!(
+        !title.trim().is_empty(),
+        VotingError::InvalidInput
+    );
     require!(
         title.len() <= MAX_TITLE_LENGTH,
         VotingError::TitleTooLong
     );
-    
+
+    // Validate description (required, non-empty)
+    require!(
+        !description.trim().is_empty(),
+        VotingError::InvalidInput
+    );
     require!(
         description.len() <= MAX_DESCRIPTION_LENGTH,
         VotingError::DescriptionTooLong
     );
-    
+
+    // Validate time range
     require!(
         end_time > start_time,
+        VotingError::InvalidTimeRange
+    );
+
+    // Validate times are positive (reasonable timestamps)
+    require!(
+        start_time > 0 && end_time > 0,
         VotingError::InvalidTimeRange
     );
     
@@ -67,8 +84,7 @@ pub fn create_election(
     ctx.accounts.admin_registry.election_count = election_id.checked_add(1).unwrap();
     
     let election = &mut ctx.accounts.election;
-    let clock = Clock::get()?;
-    
+
     election.election_id = election_id;
     election.authority = ctx.accounts.authority.key();
     election.title = title;
@@ -119,10 +135,9 @@ pub struct StartElection<'info> {
 
 pub fn start_election(ctx: Context<StartElection>) -> Result<()> {
     require!(!ctx.accounts.admin_registry.paused, VotingError::SystemPaused);
-    
+
     let election = &mut ctx.accounts.election;
-    let clock = Clock::get()?;
-    
+
     require!(
         election.candidate_count > 0,
         VotingError::InvalidInput

@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { PublicKey, SystemProgram, Transaction, ComputeBudgetProgram } from '@solana/web3.js';
 import {
   ElectionStatus,
   parseElectionStatus,
@@ -47,7 +47,8 @@ interface UnregisteredElection {
 }
 
 export default function RegistrationPage() {
-  const { publicKey } = useWallet();
+  const { publicKey, sendTransaction } = useWallet();
+  const { connection } = useConnection();
   const program = useProgram();
 
   const [registrations, setRegistrations] = useState<RegistrationRecord[]>([]);
@@ -159,6 +160,17 @@ export default function RegistrationPage() {
     setRequestError((prev) => ({ ...prev, [electionPubkeyStr]: '' }));
 
     try {
+      // Check wallet balance before attempting — new PDA accounts require rent-exemption funding
+      const balance = await connection.getBalance(publicKey);
+      if (balance < 1_000_000) {
+        setRequestError((prev) => ({
+          ...prev,
+          [electionPubkeyStr]: 'Your wallet has insufficient SOL. On localnet, run: solana airdrop 2 --url http://localhost:8899',
+        }));
+        setRequestingFor(null);
+        return;
+      }
+
       const electionPubkey = new PublicKey(electionPubkeyStr);
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [voterRegPda] = getVoterRegistrationPda(
@@ -167,8 +179,9 @@ export default function RegistrationPage() {
         program.programId
       );
 
+      // Build transaction explicitly so wallet adapter funds the new PDA properly
       // @ts-ignore
-      const tx = await program.methods
+      const registerInstruction = await program.methods
         .requestVoterRegistration()
         .accounts({
           adminRegistry: adminRegistryPda,
@@ -177,7 +190,25 @@ export default function RegistrationPage() {
           voter: publicKey,
           systemProgram: SystemProgram.programId,
         })
-        .rpc();
+        .instruction();
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: publicKey,
+      });
+
+      transaction.add(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 })
+      );
+      transaction.add(registerInstruction);
+
+      const tx = await sendTransaction(transaction, connection, {
+        skipPreflight: false,
+        preflightCommitment: 'finalized',
+      });
+      await connection.confirmTransaction(tx, 'finalized');
 
       console.log('✅ Registration requested:', tx);
       setRequestSuccess((prev) => ({ ...prev, [electionPubkeyStr]: true }));

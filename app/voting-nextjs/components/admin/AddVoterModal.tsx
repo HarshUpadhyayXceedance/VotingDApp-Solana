@@ -102,40 +102,29 @@ export function AddVoterModal({
       console.log('Voter:', voterPubkey.toString());
       console.log('Voter Reg PDA:', voterRegPda.toString());
 
-      // Admin creates and immediately approves the voter
-      // Step 1: Admin creates registration account (paying for it)
-      // Step 2: Admin immediately approves it
-      
-      // Create voter registration - admin pays, voter gets account
+      // Use the new add_voter_directly instruction (one transaction instead of two!)
+      // This allows super admin or admins with can_manage_voters permission to add voters directly
       // @ts-ignore
-      const requestTx = await program.methods
-        .requestVoterRegistration()
-        .accounts({
+      const tx = await program.methods
+        .addVoterDirectly()
+        .accountsStrict({
           adminRegistry: adminRegistryPda,
           election: electionPubkey,
           voterRegistration: voterRegPda,
           voter: voterPubkey,
+          authority: publicKey,
           systemProgram: SystemProgram.programId,
         })
-        .signers([]) // No additional signers needed, admin pays
+        .remainingAccounts([
+          {
+            pubkey: adminPda,
+            isSigner: false,
+            isWritable: false,
+          }
+        ])
         .rpc();
 
-      console.log('✅ Registration created:', requestTx);
-
-      // Immediately approve it
-      // @ts-ignore
-      const approveTx = await program.methods
-        .approveVoterRegistration()
-        .accounts({
-          adminRegistry: adminRegistryPda,
-          adminAccount: adminPda,
-          election: electionPubkey,
-          voterRegistration: voterRegPda,
-          authority: publicKey,
-        })
-        .rpc();
-
-      console.log('✅ Voter approved:', approveTx);
+      console.log('✅ Voter added directly:', tx);
 
       setMode('success-manual');
 
@@ -156,8 +145,6 @@ export function AddVoterModal({
         errorMsg = 'You do not have permission to manage voters';
       } else if (error.message?.includes('AdminNotActive')) {
         errorMsg = 'Your admin account is not active';
-      } else if (error.message?.includes('Signature verification failed')) {
-        errorMsg = 'Cannot add voter - they must register themselves or be present to sign the transaction';
       } else if (error.message?.includes('insufficient')) {
         errorMsg = 'Insufficient SOL. Please get more SOL from a faucet.';
       } else if (error.message) {
@@ -263,11 +250,12 @@ export function AddVoterModal({
             <UserPlus className="w-8 h-8 text-green-400 mb-3 group-hover:scale-110 transition-transform" />
             <h3 className="font-bold text-white mb-2">Add Manually</h3>
             <p className="text-sm text-gray-400">
-              Register and approve the voter immediately. Best when voter is present.
+              Register and approve the voter immediately. No voter signature required.
             </p>
             <div className="mt-3 text-xs text-gray-500">
               ✓ Instant approval<br/>
-              ✓ You pay gas fees
+              ✓ You pay gas fees<br/>
+              ✓ No voter action needed
             </div>
           </button>
         </div>
@@ -357,13 +345,14 @@ export function AddVoterModal({
             <li>Status will be set to "Approved" immediately</li>
             <li>Voter can vote without any action needed</li>
             <li>You pay the transaction fees (~0.002 SOL)</li>
+            <li>No signature needed from the voter</li>
           </ul>
         </div>
 
-        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded">
-          <p className="text-xs text-yellow-200">
-            ⚠️ <strong>Note:</strong> The voter wallet must sign the initial registration transaction.
-            Make sure the voter is present with access to their wallet, or use the "Send Invite" option instead.
+        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded">
+          <p className="text-xs text-blue-200">
+            ✨ <strong>New!</strong> You can now add voters directly without requiring their signature.
+            The voter wallet address just needs to be valid - they'll be instantly approved to vote.
           </p>
         </div>
 
@@ -376,7 +365,7 @@ export function AddVoterModal({
 
         <div className="p-3 bg-gray-800 border border-gray-700 rounded">
           <p className="text-xs text-gray-400">
-            💡 <strong>Best for:</strong> In-person voter registration where the voter can sign the transaction
+            💡 <strong>Best for:</strong> Quick voter onboarding, VIP access, or bulk registration
           </p>
         </div>
       </div>

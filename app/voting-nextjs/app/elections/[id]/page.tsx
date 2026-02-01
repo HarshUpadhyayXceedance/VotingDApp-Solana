@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { PublicKey, SystemProgram, Transaction, ComputeBudgetProgram } from '@solana/web3.js';
 import {
   ElectionStatus,
   parseElectionStatus,
@@ -48,7 +48,8 @@ interface CandidateData {
 
 export default function VoterElectionDetailPage() {
   const params = useParams();
-  const { publicKey } = useWallet();
+  const { publicKey, sendTransaction } = useWallet();
+  const { connection } = useConnection();
   const program = useProgram();
   const electionId = params.id as string;
 
@@ -180,33 +181,109 @@ export default function VoterElectionDetailPage() {
     setVoteError('');
 
     try {
+      console.log('🗳️ Starting vote casting process...');
+
+      // Check wallet balance before attempting — new PDA accounts require rent-exemption funding
+      const balance = await connection.getBalance(publicKey);
+      console.log('💰 Wallet balance:', balance / 1e9, 'SOL');
+
+      if (balance < 1_000_000) {
+        // Less than 0.001 SOL — almost certainly unfunded
+        setVoteError('Your wallet has insufficient SOL. On localnet, run: solana airdrop 2 --url http://localhost:8899');
+        setIsVoting(false);
+        return;
+      }
+
       const electionPubkey = new PublicKey(electionId);
       const candidatePubkey = new PublicKey(selectedCandidate);
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [voteRecordPda] = getVoteRecordPda(electionPubkey, publicKey, program.programId);
 
-      let accounts: any = {
+      console.log('📋 Account PDAs:');
+      console.log('  Admin Registry:', adminRegistryPda.toString());
+      console.log('  Election:', electionPubkey.toString());
+      console.log('  Candidate:', candidatePubkey.toString());
+      console.log('  Vote Record:', voteRecordPda.toString());
+      console.log('  Voter:', publicKey.toString());
+
+      // Determine voter registration account
+      // For Whitelist elections: use the actual voter registration PDA
+      // For Open elections: use PublicKey.default (account not checked by contract)
+      let voterRegistrationAccount: PublicKey;
+      if (election.voterRegistrationType === VoterRegistrationType.Whitelist) {
+        const [voterRegPda] = getVoterRegistrationPda(electionPubkey, publicKey, program.programId);
+        voterRegistrationAccount = voterRegPda;
+        console.log('✅ Whitelist election - using voter registration PDA:', voterRegPda.toString());
+      } else {
+        voterRegistrationAccount = PublicKey.default;
+        console.log('✅ Open election - using PublicKey.default for voter registration');
+      }
+
+      const accounts: any = {
         adminRegistry: adminRegistryPda,
         election: electionPubkey,
         candidate: candidatePubkey,
+        voterRegistration: voterRegistrationAccount,
         voteRecord: voteRecordPda,
         voter: publicKey,
         systemProgram: SystemProgram.programId,
       };
 
-      // Include voter registration for whitelist elections
-      if (election.voterRegistrationType === VoterRegistrationType.Whitelist) {
-        const [voterRegPda] = getVoterRegistrationPda(electionPubkey, publicKey, program.programId);
-        accounts.voterRegistration = voterRegPda;
-      } else {
-        accounts.voterRegistration = null;
-      }
-
+      console.log('🔨 Building cast vote instruction...');
+      // Build transaction explicitly so wallet adapter funds the new PDA properly
       // @ts-ignore
-      const tx = await program.methods
+      const castVoteInstruction = await program.methods
         .castVote()
         .accounts(accounts)
-        .rpc();
+        .instruction();
+
+      console.log('✅ Instruction built successfully');
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
+      console.log('📦 Latest blockhash:', blockhash);
+
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: publicKey,
+      });
+
+      // Add compute budget to ensure sufficient priority fee
+      transaction.add(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 })
+      );
+      transaction.add(castVoteInstruction);
+
+      console.log('📤 Sending transaction to wallet for signing...');
+      console.log('Transaction details:', {
+        instructions: transaction.instructions.length,
+        feePayer: transaction.feePayer?.toString(),
+        recentBlockhash: transaction.recentBlockhash,
+      });
+
+      // Simulate transaction first to get detailed error if any
+      console.log('🔍 Simulating transaction before sending...');
+      try {
+        const simulationResult = await connection.simulateTransaction(transaction);
+        console.log('📊 Simulation result:', simulationResult);
+
+        if (simulationResult.value.err) {
+          console.error('❌ Simulation failed:', simulationResult.value.err);
+          console.error('📋 Simulation logs:', simulationResult.value.logs);
+          throw new Error(`Transaction simulation failed: ${JSON.stringify(simulationResult.value.err)}`);
+        }
+
+        console.log('✅ Simulation successful!');
+      } catch (simErr: any) {
+        console.error('❌ Simulation error:', simErr);
+        throw simErr;
+      }
+
+      const tx = await sendTransaction(transaction, connection, {
+        skipPreflight: false,
+        preflightCommitment: 'finalized',
+      });
+      await connection.confirmTransaction(tx, 'finalized');
 
       console.log('✅ Vote cast:', tx);
 
@@ -222,10 +299,19 @@ export default function VoterElectionDetailPage() {
       await fetchData();
     } catch (err: any) {
       console.error('❌ Vote error:', err);
+      console.error('Error details:', {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        logs: err.logs,
+        stack: err.stack,
+      });
+
       let msg = 'Failed to cast vote';
       if (err.message?.includes('AlreadyVoted')) msg = 'You have already voted in this election';
       else if (err.message?.includes('VoterNotRegistered')) msg = 'You are not registered for this election';
       else if (err.message?.includes('ElectionNotActive')) msg = 'This election is not currently active';
+      else if (err.message?.includes('User rejected')) msg = 'Transaction rejected by wallet';
       else if (err.message) msg = err.message;
       setVoteError(msg);
     } finally {
@@ -240,12 +326,21 @@ export default function VoterElectionDetailPage() {
     setRegError('');
 
     try {
+      // Check wallet balance before attempting — new PDA accounts require rent-exemption funding
+      const balance = await connection.getBalance(publicKey);
+      if (balance < 1_000_000) {
+        setRegError('Your wallet has insufficient SOL. On localnet, run: solana airdrop 2 --url http://localhost:8899');
+        setIsRegistering(false);
+        return;
+      }
+
       const electionPubkey = new PublicKey(electionId);
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [voterRegPda] = getVoterRegistrationPda(electionPubkey, publicKey, program.programId);
 
+      // Build transaction explicitly so wallet adapter funds the new PDA properly
       // @ts-ignore
-      const tx = await program.methods
+      const registerInstruction = await program.methods
         .requestVoterRegistration()
         .accounts({
           adminRegistry: adminRegistryPda,
@@ -254,7 +349,25 @@ export default function VoterElectionDetailPage() {
           voter: publicKey,
           systemProgram: SystemProgram.programId,
         })
-        .rpc();
+        .instruction();
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: publicKey,
+      });
+
+      transaction.add(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 })
+      );
+      transaction.add(registerInstruction);
+
+      const tx = await sendTransaction(transaction, connection, {
+        skipPreflight: false,
+        preflightCommitment: 'finalized',
+      });
+      await connection.confirmTransaction(tx, 'finalized');
 
       console.log('✅ Registration requested:', tx);
       setRegistrationStatus(RegistrationStatus.Pending);

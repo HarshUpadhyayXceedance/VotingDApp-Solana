@@ -99,6 +99,10 @@ pub mod voting_dapp {
         instructions::voter::request_voter_registration(ctx)
     }
 
+    pub fn add_voter_directly(ctx: Context<AddVoterDirectly>) -> Result<()> {
+        instructions::voter::add_voter_directly(ctx)
+    }
+
     pub fn approve_voter_registration(ctx: Context<ApproveVoterRegistration>) -> Result<()> {
         instructions::voter::approve_voter_registration(ctx)
     }

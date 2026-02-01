@@ -17,10 +17,8 @@ interface Props {
 }
 
 export function WalletContextProvider({ children }: Props) {
-  // ✅ Localnet endpoint — matches Anchor.toml cluster = "localnet"
-  //    Change this to clusterApiUrl('devnet') or clusterApiUrl('mainnet-beta')
-  //    when you deploy to a public network.
-  const endpoint = useMemo(() => 'http://localhost:8899', []);
+  // ✅ Devnet endpoint — matches Anchor.toml cluster = "devnet"
+  const endpoint = useMemo(() => 'https://api.devnet.solana.com', []);
 
   // ✅ Wallets - empty array allows auto-detection of Standard Wallets (Phantom, etc.)
   const wallets = useMemo(

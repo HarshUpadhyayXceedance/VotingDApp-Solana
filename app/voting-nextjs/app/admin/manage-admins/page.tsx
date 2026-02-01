@@ -23,13 +23,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-interface AdminPermissions {
-  canManageElections: boolean;
-  canManageCandidates: boolean;
-  canManageVoters: boolean;
-  canFinalizeResults: boolean;
-}
-
 export default function ManageAdminsPage() {
   const { publicKey } = useWallet();
   const program = useProgram();
@@ -38,18 +31,18 @@ export default function ManageAdminsPage() {
   const [adminRegistry, setAdminRegistry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null); // null = checking, false = denied, true = allowed
   const [superAdminHasAccount, setSuperAdminHasAccount] = useState(false);
 
   // Add admin form
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAdminAddress, setNewAdminAddress] = useState('');
   const [newAdminName, setNewAdminName] = useState('');
-  const [newAdminPermissions, setNewAdminPermissions] = useState<AdminPermissions>({
-    canManageElections: true,
-    canManageCandidates: true,
-    canManageVoters: true,
-    canFinalizeResults: true,
+  const [newAdminPermissions, setNewAdminPermissions] = useState<any>({
+    can_manage_elections: true,
+    can_manage_candidates: true,
+    can_manage_voters: true,
+    can_finalize_results: true,
   });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
@@ -84,11 +77,23 @@ export default function ManageAdminsPage() {
           const account = await program.account.admin.fetch(superAdminPda);
           setSuperAdminHasAccount(true);
 
-          // Check permissions
+          // Debug: Log the entire account structure
+          console.log('🔍 Full admin account:', JSON.stringify(account, null, 2));
+
+          // Check permissions - use snake_case
           const p = account.permissions;
-          const isOk = p.canManageElections && p.canManageCandidates && p.canManageVoters && p.canFinalizeResults;
+          console.log('📋 Permissions object:', p);
+          console.log('📋 Individual permissions:', {
+            can_manage_elections: p?.can_manage_elections,
+            can_manage_candidates: p?.can_manage_candidates,
+            can_manage_voters: p?.can_manage_voters,
+            can_finalize_results: p?.can_finalize_results,
+          });
+          const isOk = p?.can_manage_elections && p?.can_manage_candidates && p?.can_manage_voters && p?.can_finalize_results;
+          console.log('✅ Permissions OK:', isOk);
           setSuperAdminPermissionsOk(!!isOk);
-        } catch {
+        } catch (e) {
+          console.log('❌ No admin account found');
           setSuperAdminHasAccount(false);
           setSuperAdminPermissionsOk(false);
         }
@@ -102,7 +107,7 @@ export default function ManageAdminsPage() {
         publicKey: account.publicKey.toString(),
         authority: account.account.authority.toString(),
         name: account.account.name,
-        isActive: account.account.isActive ?? account.account.is_active,
+        isActive: account.account.is_active ?? account.account.isActive,
         permissions: account.account.permissions,
       }));
 
@@ -126,17 +131,19 @@ export default function ManageAdminsPage() {
     try {
       setAdding(true);
       setAddError('');
+      setAddSuccess(false);
 
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [adminPda] = getAdminPda(publicKey, program.programId);
 
-      console.log('Repairing admin permissions...');
+      console.log('🔧 Repairing admin permissions...');
 
+      // Use snake_case to match Rust struct
       const fullPermissions = {
-        canManageElections: true,
-        canManageCandidates: true,
-        canManageVoters: true,
-        canFinalizeResults: true,
+        can_manage_elections: true,
+        can_manage_candidates: true,
+        can_manage_voters: true,
+        can_finalize_results: true,
       };
 
       // @ts-ignore
@@ -149,14 +156,23 @@ export default function ManageAdminsPage() {
         })
         .rpc();
 
-      console.log('✅ Permissions repaired:', tx);
-      setAddSuccess(true);
-      setSuperAdminPermissionsOk(true);
+      console.log('✅ Transaction sent:', tx);
+      console.log('⏳ Waiting for confirmation and state propagation...');
 
+      // Wait for blockchain to process and propagate the transaction
+      // Localnet is usually fast, but we need to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 4000));
+
+      console.log('🔄 Fetching fresh permissions from blockchain...');
+      // Fetch fresh data from blockchain
+      await fetchAdmins();
+
+      setAddSuccess(true);
+
+      // Clear success message after delay
       setTimeout(() => {
         setAddSuccess(false);
-        fetchAdmins();
-      }, 1500);
+      }, 2000);
     } catch (error: any) {
       console.error('❌ Error repairing permissions:', error);
       setAddError(error.message || 'Failed to repair permissions');
@@ -177,19 +193,21 @@ export default function ManageAdminsPage() {
     try {
       setAdding(true);
       setAddError('');
+      setAddSuccess(false);
 
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [adminPda] = getAdminPda(publicKey, program.programId);
 
-      console.log('Adding self as admin...');
+      console.log('➕ Adding self as admin...');
       console.log('Admin Registry PDA:', adminRegistryPda.toString());
       console.log('Admin PDA:', adminPda.toString());
 
+      // Use snake_case to match Rust struct
       const fullPermissions = {
-        canManageElections: true,
-        canManageCandidates: true,
-        canManageVoters: true,
-        canFinalizeResults: true,
+        can_manage_elections: true,
+        can_manage_candidates: true,
+        can_manage_voters: true,
+        can_finalize_results: true,
       };
 
       // @ts-ignore
@@ -204,15 +222,22 @@ export default function ManageAdminsPage() {
         })
         .rpc();
 
-      console.log('✅ Self added as admin:', tx);
-      setAddSuccess(true);
-      setSuperAdminHasAccount(true);
-      setSuperAdminPermissionsOk(true);
+      console.log('✅ Transaction sent:', tx);
+      console.log('⏳ Waiting for confirmation and state propagation...');
 
+      // Wait for blockchain to process and propagate the transaction
+      await new Promise(resolve => setTimeout(resolve, 4000));
+
+      console.log('🔄 Fetching fresh admin account from blockchain...');
+      // Fetch fresh data from blockchain
+      await fetchAdmins();
+
+      setAddSuccess(true);
+
+      // Clear success message after delay
       setTimeout(() => {
         setAddSuccess(false);
-        fetchAdmins();
-      }, 1500);
+      }, 2000);
     } catch (error: any) {
       console.error('❌ Error adding self as admin:', error);
       setAddError(error.message || 'Failed to add self as admin');
@@ -264,10 +289,10 @@ export default function ManageAdminsPage() {
         setNewAdminAddress('');
         setNewAdminName('');
         setNewAdminPermissions({
-          canManageElections: true,
-          canManageCandidates: true,
-          canManageVoters: true,
-          canFinalizeResults: true,
+          can_manage_elections: true,
+          can_manage_candidates: true,
+          can_manage_voters: true,
+          can_finalize_results: true,
         });
         setAddSuccess(false);
         setShowAddForm(false);
@@ -340,8 +365,37 @@ export default function ManageAdminsPage() {
     );
   }
 
+  // Show loading while checking super admin status
+  if (isSuperAdmin === null) {
+    return (
+      <AppLayout showFooter={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-400">Checking permissions...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Show access denied if not super admin
+  if (isSuperAdmin === false) {
+    return (
+      <AppLayout showFooter={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
+            <p className="text-gray-400">Only super admins can manage administrators</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
-    <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
+    <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin === true} />} showFooter={false}>
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -462,11 +516,11 @@ export default function ManageAdminsPage() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="manage-elections"
-                        checked={newAdminPermissions.canManageElections}
+                        checked={newAdminPermissions.can_manage_elections}
                         onCheckedChange={(checked) =>
                           setNewAdminPermissions({
                             ...newAdminPermissions,
-                            canManageElections: checked as boolean,
+                            can_manage_elections: checked as boolean,
                           })
                         }
                       />
@@ -477,11 +531,11 @@ export default function ManageAdminsPage() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="manage-candidates"
-                        checked={newAdminPermissions.canManageCandidates}
+                        checked={newAdminPermissions.can_manage_candidates}
                         onCheckedChange={(checked) =>
                           setNewAdminPermissions({
                             ...newAdminPermissions,
-                            canManageCandidates: checked as boolean,
+                            can_manage_candidates: checked as boolean,
                           })
                         }
                       />
@@ -492,11 +546,11 @@ export default function ManageAdminsPage() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="manage-voters"
-                        checked={newAdminPermissions.canManageVoters}
+                        checked={newAdminPermissions.can_manage_voters}
                         onCheckedChange={(checked) =>
                           setNewAdminPermissions({
                             ...newAdminPermissions,
-                            canManageVoters: checked as boolean,
+                            can_manage_voters: checked as boolean,
                           })
                         }
                       />
@@ -507,11 +561,11 @@ export default function ManageAdminsPage() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="finalize-results"
-                        checked={newAdminPermissions.canFinalizeResults}
+                        checked={newAdminPermissions.can_finalize_results}
                         onCheckedChange={(checked) =>
                           setNewAdminPermissions({
                             ...newAdminPermissions,
-                            canFinalizeResults: checked as boolean,
+                            can_finalize_results: checked as boolean,
                           })
                         }
                       />

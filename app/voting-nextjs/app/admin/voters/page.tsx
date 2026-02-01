@@ -19,7 +19,7 @@ export default function VotersPage() {
   const [elections, setElections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null); // null = checking, false = denied, true = allowed
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const fetchData = async () => {
@@ -51,7 +51,8 @@ export default function VotersPage() {
       try {
         // @ts-ignore
         const adminAccount = await program.account.admin.fetch(adminPda);
-        hasAdminAccount = adminAccount.isActive && adminAccount.permissions.can_manage_voters;
+        const isActive = adminAccount.is_active ?? adminAccount.isActive;
+        hasAdminAccount = isActive && adminAccount.permissions.can_manage_voters;
       } catch (e) {
         hasAdminAccount = false;
       }
@@ -139,7 +140,22 @@ export default function VotersPage() {
     );
   }
 
-  if (!isAdmin) {
+  // Show loading while checking permissions
+  if (isAdmin === null) {
+    return (
+      <AppLayout showFooter={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-400">Checking permissions...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Show access denied if not admin
+  if (isAdmin === false) {
     return (
       <AppLayout showFooter={false}>
         <div className="min-h-screen flex items-center justify-center">

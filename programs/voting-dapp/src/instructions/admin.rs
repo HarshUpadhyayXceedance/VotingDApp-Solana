@@ -78,7 +78,12 @@ pub fn add_admin(
         ctx.accounts.super_admin.key() == SUPER_ADMIN,
         VotingError::Unauthorized
     );
-    
+
+    // Validate admin name (required, non-empty)
+    require!(
+        !name.trim().is_empty(),
+        VotingError::InvalidInput
+    );
     require!(
         name.len() <= MAX_NAME_LENGTH,
         VotingError::NameTooLong

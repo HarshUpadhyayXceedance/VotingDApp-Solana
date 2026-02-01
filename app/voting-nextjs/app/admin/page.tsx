@@ -48,6 +48,7 @@ export default function AdminDashboard() {
           msg.includes('Account not found') ||
           msg.includes('not found') ||
           msg.includes('AccountNotInitialized') ||
+          msg.includes('buffer length') ||
           msg.includes('0x0');
 
         if (isAccountMissing) {
@@ -71,7 +72,7 @@ export default function AdminDashboard() {
       try {
         // @ts-ignore
         const adminAccount = await program.account.admin.fetch(adminPda);
-        hasAdminAccount = adminAccount.isActive;
+        hasAdminAccount = adminAccount.is_active ?? adminAccount.isActive;
       } catch (e) {
         hasAdminAccount = false;
       }

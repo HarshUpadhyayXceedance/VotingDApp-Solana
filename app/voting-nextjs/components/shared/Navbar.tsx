@@ -57,12 +57,12 @@ export function Navbar() {
           return;
         }
 
-        // Check if regular admin with active account
+        // Check if regular admin with active account - use snake_case
         const [adminPda] = getAdminPda(publicKey, program.programId);
         try {
           // @ts-ignore
           const adminAccount = await program.account.admin.fetch(adminPda);
-          setIsAdmin(adminAccount.isActive);
+          setIsAdmin(adminAccount.is_active ?? adminAccount.isActive);
         } catch {
           setIsAdmin(false);
         }
@@ -106,11 +106,23 @@ export function Navbar() {
             </div>
           </Link>
 
-          {/* Center: Navigation Links (Desktop) - Smart Button Display */}
+          {/* Center: Navigation Links (Desktop) - Show both Elections and Admin */}
           {publicKey && (
             <div className="hidden md:flex items-center gap-2">
-              {isAdmin ? (
-                // Show Admin button for admin/super admin users
+              {/* Elections Link - Always show when connected */}
+              <Link
+                href="/elections"
+                className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                  isActive('/elections') || pathname?.startsWith('/elections/')
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
+                }`}
+              >
+                Elections
+              </Link>
+
+              {/* Admin Link - Only show for admins */}
+              {isAdmin && (
                 <Link
                   href="/admin"
                   className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
@@ -120,18 +132,6 @@ export function Navbar() {
                   }`}
                 >
                   Admin
-                </Link>
-              ) : (
-                // Show Voter button for regular users
-                <Link
-                  href="/elections"
-                  className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
-                    isActive('/elections') || pathname?.startsWith('/elections/')
-                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
-                      : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
-                  }`}
-                >
-                  Voter
                 </Link>
               )}
             </div>
@@ -200,7 +200,21 @@ export function Navbar() {
 
               {publicKey && (
                 <>
-                  {isAdmin ? (
+                  {/* Elections Link - Always show when connected */}
+                  <Link
+                    href="/elections"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
+                      isActive('/elections') || pathname?.startsWith('/elections/')
+                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-800/50'
+                    }`}
+                  >
+                    Elections
+                  </Link>
+
+                  {/* Admin Link - Only show for admins */}
+                  {isAdmin && (
                     <Link
                       href="/admin"
                       onClick={() => setMobileMenuOpen(false)}
@@ -211,18 +225,6 @@ export function Navbar() {
                       }`}
                     >
                       Admin
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/elections"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
-                        isActive('/elections') || pathname?.startsWith('/elections/')
-                          ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-800/50'
-                      }`}
-                    >
-                      Voter
                     </Link>
                   )}
                 </>

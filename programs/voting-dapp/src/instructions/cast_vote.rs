@@ -33,16 +33,9 @@ pub struct CastVote<'info> {
     pub candidate: Account<'info, Candidate>,
     
     // Voter registration check (only for Whitelist elections)
-    #[account(
-        seeds = [
-            VOTER_REGISTRATION_SEED,
-            election.key().as_ref(),
-            voter.key().as_ref()
-        ],
-        bump = voter_registration.bump,
-        constraint = voter_registration.status == RegistrationStatus::Approved @ VotingError::VoterNotRegistered
-    )]
-    pub voter_registration: Option<Account<'info, VoterRegistration>>,
+    // Using UncheckedAccount to make it truly optional - validation done in function logic
+    /// CHECK: Optional voter registration. For Whitelist elections, seeds/bump/status validated in cast_vote function.
+    pub voter_registration: UncheckedAccount<'info>,
     
     #[account(
         init,
@@ -79,8 +72,38 @@ pub fn cast_vote(ctx: Context<CastVote>) -> Result<()> {
     
     // Check if election requires voter registration
     if election.voter_registration_type == VoterRegistrationType::Whitelist {
+        // Manually derive and validate voter registration PDA
+        let (expected_voter_reg_pda, expected_bump) = Pubkey::find_program_address(
+            &[
+                VOTER_REGISTRATION_SEED,
+                election.key().as_ref(),
+                ctx.accounts.voter.key().as_ref()
+            ],
+            ctx.program_id
+        );
+
+        // Verify the provided account matches the expected PDA
         require!(
-            ctx.accounts.voter_registration.is_some(),
+            ctx.accounts.voter_registration.key() == expected_voter_reg_pda,
+            VotingError::VoterNotRegistered
+        );
+
+        // Deserialize and validate the voter registration account
+        let voter_reg_data = ctx.accounts.voter_registration.try_borrow_data()?;
+        require!(
+            !voter_reg_data.is_empty(),
+            VotingError::VoterNotRegistered
+        );
+
+        let voter_reg = VoterRegistration::try_deserialize(&mut &voter_reg_data[..])?;
+
+        // Verify the account data
+        require!(
+            voter_reg.bump == expected_bump,
+            VotingError::VoterNotRegistered
+        );
+        require!(
+            voter_reg.status == RegistrationStatus::Approved,
             VotingError::VoterNotRegistered
         );
     }
@@ -91,10 +114,10 @@ pub fn cast_vote(ctx: Context<CastVote>) -> Result<()> {
     vote_record.candidate = candidate.key();
     vote_record.voted_at = clock.unix_timestamp;
     vote_record.bump = ctx.bumps.vote_record;
-    
-    // Update vote counts
-    candidate.vote_count += 1;
-    election.total_votes += 1;
+
+    // Update vote counts with overflow protection
+    candidate.vote_count = candidate.vote_count.saturating_add(1);
+    election.total_votes = election.total_votes.saturating_add(1);
     
     msg!("Vote cast successfully");
     msg!("Voter: {}", ctx.accounts.voter.key());

@@ -55,17 +55,28 @@ pub fn add_candidate(
     image_url: String,
 ) -> Result<()> {
     require!(!ctx.accounts.admin_registry.paused, VotingError::SystemPaused);
-    
+
+    // Validate name (required, non-empty)
+    require!(
+        !name.trim().is_empty(),
+        VotingError::InvalidInput
+    );
     require!(
         name.len() <= MAX_NAME_LENGTH,
         VotingError::NameTooLong
     );
-    
+
+    // Validate description (required, non-empty)
+    require!(
+        !description.trim().is_empty(),
+        VotingError::InvalidInput
+    );
     require!(
         description.len() <= MAX_DESCRIPTION_LENGTH,
         VotingError::DescriptionTooLong
     );
-    
+
+    // Validate image URL (optional, can be empty)
     require!(
         image_url.len() <= MAX_IMAGE_URL_LENGTH,
         VotingError::ImageUrlTooLong
@@ -84,8 +95,9 @@ pub fn add_candidate(
     candidate.added_by = ctx.accounts.authority.key();
     candidate.added_at = clock.unix_timestamp;
     candidate.bump = ctx.bumps.candidate;
-    
-    election.candidate_count += 1;
+
+    // Use saturating_add for production safety (prevents overflow panic)
+    election.candidate_count = election.candidate_count.saturating_add(1);
     
     msg!("Candidate added");
     msg!("Election: {}", election.title);

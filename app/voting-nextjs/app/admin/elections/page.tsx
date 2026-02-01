@@ -55,7 +55,7 @@ export default function ElectionsPage() {
       try {
         // @ts-ignore
         const adminAccount = await program.account.admin.fetch(adminPda);
-        hasAdminAccount = adminAccount.isActive;
+        hasAdminAccount = adminAccount.is_active ?? adminAccount.isActive;
       } catch (e) {
         hasAdminAccount = false;
       }

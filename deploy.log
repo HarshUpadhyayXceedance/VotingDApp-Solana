@@ -1,0 +1,6 @@
+Deploying cluster: https://api.devnet.solana.com
+Upgrade authority: /Users/harsh/.config/solana/id.json
+Deploying program "voting_dapp"...
+Program path: /Users/harsh/Downloads/voteApp_Solana_DApp/voting-dapp/target/deploy/voting_dapp.so...
+Error: Buffer account data size (459381) is smaller than the minimum size (459901)
+There was a problem deploying: Output { status: ExitStatus(unix_wait_status(256)), stdout: "", stderr: "" }.
