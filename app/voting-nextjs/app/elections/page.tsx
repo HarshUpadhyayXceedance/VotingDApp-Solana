@@ -4,105 +4,139 @@ import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
-import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
-import { ElectionStatus, parseElectionStatus } from '@/lib/types';
+import { ElectionStatus, parseElectionStatus, VoterRegistrationType, parseVoterRegistrationType, RegistrationStatus } from '@/lib/types';
+import {
+  getElectionStatusLabel,
+  getElectionStatusColor,
+  formatElectionTime,
+  getTimeRemaining,
+  isVotingOpen,
+} from '@/lib/election-utils';
+import { getVoterRegistrationPda, getVoteRecordPda } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/shared/AppLayout';
-import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { CreateElectionModal } from '@/components/admin/CreateElectionModal';
-import { ElectionCard } from '@/components/admin/ElectionCard';
-import { Plus, AlertCircle, Calendar, Filter } from 'lucide-react';
+import { VoterSidebar } from '@/components/shared/VoterSidebar';
+import {
+  AlertCircle,
+  Calendar,
+  Filter,
+  Clock,
+  Users,
+  CheckCircle2,
+  Vote,
+  ArrowRight,
+  Search,
+} from 'lucide-react';
+import Link from 'next/link';
 
-export default function ElectionsPage() {
+interface EnrichedElection {
+  publicKey: string;
+  electionId: number;
+  title: string;
+  description: string;
+  startTime: number;
+  endTime: number;
+  totalVotes: string;
+  candidateCount: string;
+  status: ElectionStatus;
+  voterRegistrationType: VoterRegistrationType;
+  // Voter-specific enrichment
+  hasVoted: boolean;
+  registrationStatus: RegistrationStatus | null; // null = not registered / not applicable
+}
+
+export default function VoterElectionsPage() {
   const { publicKey } = useWallet();
   const program = useProgram();
 
-  const [elections, setElections] = useState<any[]>([]);
+  const [elections, setElections] = useState<EnrichedElection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | ElectionStatus>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'upcoming' | 'finalized'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [pendingRegCount, setPendingRegCount] = useState(0);
 
   const fetchData = async () => {
-    if (!program || !publicKey) return;
+    if (!program) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
       setError('');
 
-      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
-
-      let adminRegistry;
-      try {
-        // @ts-ignore
-        adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
-      } catch (e: any) {
-        console.error('Error fetching admin registry:', e);
-        setError('Failed to connect to the program.');
-        setLoading(false);
-        return;
-      }
-
-      const isSuperAdminUser = publicKey.equals(adminRegistry.superAdmin);
-      setIsSuperAdmin(isSuperAdminUser);
-
-      const [adminPda] = getAdminPda(publicKey, program.programId);
-
-      let hasAdminAccount = false;
-      try {
-        // @ts-ignore
-        const adminAccount = await program.account.admin.fetch(adminPda);
-        hasAdminAccount = adminAccount.isActive;
-      } catch (e) {
-        hasAdminAccount = false;
-      }
-
-      setIsAdmin(isSuperAdminUser || hasAdminAccount);
-
       // @ts-ignore
       const electionAccounts = await program.account.election.all();
 
-      const electionsData = electionAccounts.map((account: any) => {
-        // Convert BN to number safely
-        const electionId = account.account.electionId?.toNumber 
-          ? account.account.electionId.toNumber() 
-          : Number(account.account.electionId);
-        
-        const startTime = account.account.startTime?.toNumber 
-          ? account.account.startTime.toNumber() 
-          : Number(account.account.startTime);
-        
-        const endTime = account.account.endTime?.toNumber 
-          ? account.account.endTime.toNumber() 
-          : Number(account.account.endTime);
-        
-        const totalVotes = account.account.totalVotes?.toString 
-          ? account.account.totalVotes.toString() 
-          : String(account.account.totalVotes);
-        
-        const candidateCount = account.account.candidateCount?.toString 
-          ? account.account.candidateCount.toString() 
-          : String(account.account.candidateCount);
+      const enriched: EnrichedElection[] = await Promise.all(
+        electionAccounts.map(async (account: any) => {
+          const electionPubkey = account.publicKey;
+          const status = parseElectionStatus(account.account.status);
+          const regType = parseVoterRegistrationType(account.account.voterRegistrationType);
 
-        return {
-          publicKey: account.publicKey.toString(),
-          electionId,
-          title: account.account.title,
-          description: account.account.description,
-          startTime,
-          endTime,
-          totalVotes,
-          candidateCount,
-          status: parseElectionStatus(account.account.status),
-        };
-      });
+          let hasVoted = false;
+          let registrationStatus: RegistrationStatus | null = null;
 
-      electionsData.sort((a: any, b: any) => b.electionId - a.electionId);
-      setElections(electionsData);
-    } catch (error: any) {
-      console.error('Error fetching data:', error);
+          if (publicKey) {
+            // Check if voter has voted
+            try {
+              const [voteRecordPda] = getVoteRecordPda(electionPubkey, publicKey, program.programId);
+              // @ts-ignore
+              await program.account.voteRecord.fetch(voteRecordPda);
+              hasVoted = true;
+            } catch {
+              hasVoted = false;
+            }
+
+            // Check voter registration for whitelist elections
+            if (regType === VoterRegistrationType.Whitelist) {
+              try {
+                const [voterRegPda] = getVoterRegistrationPda(electionPubkey, publicKey, program.programId);
+                // @ts-ignore
+                const reg = await program.account.voterRegistration.fetch(voterRegPda);
+                if (reg.status.pending !== undefined) registrationStatus = RegistrationStatus.Pending;
+                else if (reg.status.approved !== undefined) registrationStatus = RegistrationStatus.Approved;
+                else if (reg.status.rejected !== undefined) registrationStatus = RegistrationStatus.Rejected;
+                else if (reg.status.revoked !== undefined) registrationStatus = RegistrationStatus.Revoked;
+              } catch {
+                registrationStatus = null; // not registered
+              }
+            }
+          }
+
+          return {
+            publicKey: electionPubkey.toString(),
+            electionId: account.account.electionId?.toNumber
+              ? account.account.electionId.toNumber()
+              : Number(account.account.electionId),
+            title: account.account.title,
+            description: account.account.description,
+            startTime: account.account.startTime?.toNumber
+              ? account.account.startTime.toNumber()
+              : Number(account.account.startTime),
+            endTime: account.account.endTime?.toNumber
+              ? account.account.endTime.toNumber()
+              : Number(account.account.endTime),
+            totalVotes: account.account.totalVotes?.toString
+              ? account.account.totalVotes.toString()
+              : String(account.account.totalVotes),
+            candidateCount: account.account.candidateCount?.toString
+              ? account.account.candidateCount.toString()
+              : String(account.account.candidateCount),
+            status,
+            voterRegistrationType: regType,
+            hasVoted,
+            registrationStatus,
+          };
+        })
+      );
+
+      enriched.sort((a, b) => b.electionId - a.electionId);
+      setElections(enriched);
+      setPendingRegCount(enriched.filter(e => e.registrationStatus === RegistrationStatus.Pending).length);
+    } catch (err: any) {
+      console.error('Error fetching elections:', err);
       setError('Failed to load elections');
     } finally {
       setLoading(false);
@@ -113,224 +147,227 @@ export default function ElectionsPage() {
     fetchData();
   }, [program, publicKey]);
 
-  const handleStartElection = async (electionPublicKey: string) => {
-    if (!program || !publicKey) return;
+  // Filtering logic
+  const filtered = elections.filter((e) => {
+    // Status filter
+    if (statusFilter === 'active' && e.status !== ElectionStatus.Active) return false;
+    if (statusFilter === 'upcoming' && e.status !== ElectionStatus.Draft) return false;
+    if (statusFilter === 'finalized' && e.status !== ElectionStatus.Finalized) return false;
 
-    try {
-      const electionPubkey = new PublicKey(electionPublicKey);
-      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
-      const [adminPda] = getAdminPda(publicKey, program.programId);
+    // Search
+    if (searchQuery && !e.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
 
-      // @ts-ignore
-      const tx = await program.methods
-        .startElection()
-        .accounts({
-          adminRegistry: adminRegistryPda,
-          adminAccount: adminPda,
-          election: electionPubkey,
-          authority: publicKey,
-        })
-        .rpc();
+    return true;
+  });
 
-      console.log('✅ Election started:', tx);
-      fetchData();
-    } catch (error: any) {
-      console.error('❌ Error starting election:', error);
-      alert(error.message || 'Failed to start election');
-    }
-  };
+  // Only show elections relevant to voters (Active, Ended, Finalized — skip Draft unless searching)
+  const visibleElections = statusFilter === 'all'
+    ? filtered.filter(e => e.status !== ElectionStatus.Draft && e.status !== ElectionStatus.Cancelled)
+    : filtered;
 
-  const handleEndElection = async (electionPublicKey: string) => {
-    if (!program || !publicKey) return;
-
-    try {
-      const electionPubkey = new PublicKey(electionPublicKey);
-      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
-      const [adminPda] = getAdminPda(publicKey, program.programId);
-
-      // @ts-ignore
-      const tx = await program.methods
-        .endElection()
-        .accounts({
-          adminRegistry: adminRegistryPda,
-          adminAccount: adminPda,
-          election: electionPubkey,
-          authority: publicKey,
-        })
-        .rpc();
-
-      console.log('✅ Election ended:', tx);
-      fetchData();
-    } catch (error: any) {
-      console.error('❌ Error ending election:', error);
-      alert(error.message || 'Failed to end election');
-    }
-  };
-
-  const handleFinalizeElection = async (electionPublicKey: string) => {
-    if (!program || !publicKey) return;
-
-    try {
-      const electionPubkey = new PublicKey(electionPublicKey);
-      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
-      const [adminPda] = getAdminPda(publicKey, program.programId);
-
-      // @ts-ignore
-      const tx = await program.methods
-        .finalizeElection()
-        .accounts({
-          adminRegistry: adminRegistryPda,
-          adminAccount: adminPda,
-          election: electionPubkey,
-          authority: publicKey,
-        })
-        .rpc();
-
-      console.log('✅ Election finalized:', tx);
-      fetchData();
-    } catch (error: any) {
-      console.error('❌ Error finalizing election:', error);
-      alert(error.message || 'Failed to finalize election');
-    }
-  };
-
-  if (!publicKey) {
-    return (
-      <AppLayout showFooter={false}>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-            <p className="text-gray-400">Please connect your wallet</p>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <AppLayout showFooter={false}>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
-            <p className="text-gray-400">You are not an admin</p>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  const filteredElections = statusFilter === 'all'
-    ? elections
-    : elections.filter(e => e.status === statusFilter);
-
-  // Calculate counts safely
-  const draftCount = elections.filter(e => e.status === ElectionStatus.Draft).length;
   const activeCount = elections.filter(e => e.status === ElectionStatus.Active).length;
-  const endedCount = elections.filter(e => e.status === ElectionStatus.Ended).length;
   const finalizedCount = elections.filter(e => e.status === ElectionStatus.Finalized).length;
 
   return (
-    <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">All Elections</h1>
-            <p className="text-gray-400">View and manage all elections</p>
+    <AppLayout sidebar={<VoterSidebar pendingCount={pendingRegCount} />} showFooter={false}>
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Browse Elections</h1>
+          <p className="text-gray-400">
+            Participate in active elections or review past results
+          </p>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+              <Vote className="w-5 h-5 text-green-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">{activeCount}</p>
+              <p className="text-xs text-gray-400">Active</p>
+            </div>
           </div>
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-gradient-to-r from-purple-500 to-purple-600"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Election
-          </Button>
-        </div>
-
-        {/* Filter Buttons */}
-        <div className="flex items-center gap-2 mb-6 flex-wrap">
-          <Filter className="w-5 h-5 text-gray-400" />
-          <Button
-            onClick={() => setStatusFilter('all')}
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-          >
-            All ({elections.length})
-          </Button>
-          <Button
-            onClick={() => setStatusFilter(ElectionStatus.Draft)}
-            variant={statusFilter === ElectionStatus.Draft ? 'default' : 'outline'}
-            size="sm"
-          >
-            Draft ({draftCount})
-          </Button>
-          <Button
-            onClick={() => setStatusFilter(ElectionStatus.Active)}
-            variant={statusFilter === ElectionStatus.Active ? 'default' : 'outline'}
-            size="sm"
-          >
-            Active ({activeCount})
-          </Button>
-          <Button
-            onClick={() => setStatusFilter(ElectionStatus.Ended)}
-            variant={statusFilter === ElectionStatus.Ended ? 'default' : 'outline'}
-            size="sm"
-          >
-            Ended ({endedCount})
-          </Button>
-          <Button
-            onClick={() => setStatusFilter(ElectionStatus.Finalized)}
-            variant={statusFilter === ElectionStatus.Finalized ? 'default' : 'outline'}
-            size="sm"
-          >
-            Finalized ({finalizedCount})
-          </Button>
-        </div>
-
-        {/* Elections Grid */}
-        <div>
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-purple-400" />
             </div>
-          ) : error ? (
-            <div className="text-center py-16">
-              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-              <p className="text-red-400">{error}</p>
+            <div>
+              <p className="text-2xl font-bold text-white">{finalizedCount}</p>
+              <p className="text-xs text-gray-400">Finalized</p>
             </div>
-          ) : filteredElections.length === 0 ? (
-            <div className="text-center py-16">
-              <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">
-                {statusFilter === 'all' ? 'No elections yet' : `No ${statusFilter} elections`}
+          </div>
+          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+              <Users className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">
+                {elections.filter(e => e.hasVoted).length}
               </p>
-              <Button onClick={() => setShowCreateModal(true)} variant="outline">
-                Create Your First Election
-              </Button>
+              <p className="text-xs text-gray-400">Your Votes</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredElections.map((election) => (
-                <ElectionCard
-                  key={election.publicKey}
-                  election={election}
-                  onStartElection={handleStartElection}
-                  onEndElection={handleEndElection}
-                  onFinalizeElection={handleFinalizeElection}
-                />
-              ))}
-            </div>
-          )}
+          </div>
         </div>
-      </div>
 
-      <CreateElectionModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={fetchData}
-      />
+        {/* Search + Filters */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search elections..."
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500 transition-colors"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-500" />
+            {(['all', 'active', 'finalized'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  statusFilter === f
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
+                }`}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Elections List */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        ) : visibleElections.length === 0 ? (
+          <div className="text-center py-20">
+            <Calendar className="w-12 h-12 text-gray-700 mx-auto mb-4" />
+            <p className="text-gray-500">No elections found</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {visibleElections.map((election) => {
+              const isActive = election.status === ElectionStatus.Active;
+              const isFinalized = election.status === ElectionStatus.Finalized;
+              const canVote =
+                isActive &&
+                !election.hasVoted &&
+                (election.voterRegistrationType === VoterRegistrationType.Open ||
+                  election.registrationStatus === RegistrationStatus.Approved);
+              const needsRegistration =
+                isActive &&
+                election.voterRegistrationType === VoterRegistrationType.Whitelist &&
+                election.registrationStatus === null;
+
+              return (
+                <div
+                  key={election.publicKey}
+                  className="bg-gray-800/50 border border-gray-700 rounded-xl p-5 hover:border-gray-600 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      {/* Title row */}
+                      <div className="flex items-center gap-3 flex-wrap mb-2">
+                        <h3 className="text-lg font-semibold text-white truncate">{election.title}</h3>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getElectionStatusColor(election.status)}`}>
+                          {getElectionStatusLabel(election.status)}
+                        </span>
+                        {election.hasVoted && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-500/15 text-green-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Voted
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Description */}
+                      {election.description && (
+                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">{election.description}</p>
+                      )}
+
+                      {/* Meta row */}
+                      <div className="flex items-center gap-5 text-xs text-gray-500 flex-wrap">
+                        <span className="flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5" />
+                          {election.candidateCount} candidates
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Vote className="w-3.5 h-3.5" />
+                          {election.totalVotes} votes cast
+                        </span>
+                        {isActive && (
+                          <span className="flex items-center gap-1.5 text-yellow-500">
+                            <Clock className="w-3.5 h-3.5" />
+                            Ends {getTimeRemaining(election.endTime)}
+                          </span>
+                        )}
+                        <span className={`flex items-center gap-1.5 ${
+                          election.voterRegistrationType === VoterRegistrationType.Whitelist
+                            ? 'text-blue-400'
+                            : 'text-green-400'
+                        }`}>
+                          {election.voterRegistrationType === VoterRegistrationType.Whitelist ? '🔒 Whitelist' : '🌐 Open'}
+                        </span>
+                      </div>
+
+                      {/* Registration status notice */}
+                      {election.registrationStatus === RegistrationStatus.Pending && (
+                        <div className="mt-3 flex items-center gap-2 text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                          Your registration is pending approval
+                        </div>
+                      )}
+                      {election.registrationStatus === RegistrationStatus.Rejected && (
+                        <div className="mt-3 flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                          Your registration was rejected
+                        </div>
+                      )}
+                      {needsRegistration && (
+                        <div className="mt-3 flex items-center gap-2 text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                          Registration required — visit the election to register
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action */}
+                    <div className="flex-shrink-0">
+                      {canVote ? (
+                        <Link href={`/elections/${election.publicKey}`}>
+                          <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
+                            <Vote className="w-3.5 h-3.5 mr-1.5" />
+                            Vote Now
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Link href={`/elections/${election.publicKey}`}>
+                          <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:text-white">
+                            <ArrowRight className="w-3.5 h-3.5 mr-1.5" />
+                            {isFinalized ? 'View Results' : 'Details'}
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </AppLayout>
   );
 }
