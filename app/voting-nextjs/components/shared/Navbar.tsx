@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
-import { SUPER_ADMIN, ADMIN_SEED } from '@/lib/constants';
+import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
 import { usePathname } from 'next/navigation';
 
 export function Navbar() {
@@ -16,6 +16,7 @@ export function Navbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const program = useProgram();
   const pathname = usePathname();
@@ -24,31 +25,51 @@ export function Navbar() {
     setMounted(true);
   }, []);
 
-  // Check if user is admin
+  // Check if user is admin or super admin
   useEffect(() => {
     const checkAdmin = async () => {
       if (!publicKey || !program) {
         setIsAdmin(false);
+        setIsSuperAdmin(false);
         return;
       }
 
       try {
+        const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+        
+        // Check admin registry
+        let adminRegistry;
+        try {
+          // @ts-ignore
+          adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
+        } catch (e) {
+          setIsAdmin(false);
+          setIsSuperAdmin(false);
+          return;
+        }
+
         // Check if super admin
-        if (publicKey.equals(SUPER_ADMIN)) {
+        const isSuperAdminUser = publicKey.equals(adminRegistry.superAdmin);
+        setIsSuperAdmin(isSuperAdminUser);
+
+        if (isSuperAdminUser) {
           setIsAdmin(true);
           return;
         }
 
-        // Check if admin
-        const [adminPda] = PublicKey.findProgramAddressSync(
-          [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-          program.programId
-        );
-        // @ts-ignore
-        await program.account.admin.fetch(adminPda);
-        setIsAdmin(true);
-      } catch {
+        // Check if regular admin with active account
+        const [adminPda] = getAdminPda(publicKey, program.programId);
+        try {
+          // @ts-ignore
+          const adminAccount = await program.account.admin.fetch(adminPda);
+          setIsAdmin(adminAccount.isActive);
+        } catch {
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
         setIsAdmin(false);
+        setIsSuperAdmin(false);
       }
     };
 
@@ -85,27 +106,32 @@ export function Navbar() {
             </div>
           </Link>
 
-          {/* Center: Navigation Links (Desktop) */}
+          {/* Center: Navigation Links (Desktop) - Smart Button Display */}
           {publicKey && (
             <div className="hidden md:flex items-center gap-2">
-              <Link
-                href="/elections"
-                className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${isActive('/elections')
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
-                  }`}
-              >
-                Elections
-              </Link>
-              {isAdmin && (
+              {isAdmin ? (
+                // Show Admin button for admin/super admin users
                 <Link
                   href="/admin"
-                  className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${isActive('/admin') || pathname?.startsWith('/admin/')
-                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
-                    }`}
+                  className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    isActive('/admin') || pathname?.startsWith('/admin/')
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
+                  }`}
                 >
                   Admin
+                </Link>
+              ) : (
+                // Show Voter button for regular users
+                <Link
+                  href="/elections"
+                  className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                    isActive('/elections') || pathname?.startsWith('/elections/')
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
+                  }`}
+                >
+                  Voter
                 </Link>
               )}
             </div>
@@ -117,7 +143,9 @@ export function Navbar() {
             {publicKey && (
               <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-xs font-medium text-green-400">Connected</span>
+                <span className="text-xs font-medium text-green-400">
+                  {isAdmin ? (isSuperAdmin ? 'Super Admin' : 'Admin') : 'Voter'}
+                </span>
               </div>
             )}
 
@@ -172,26 +200,29 @@ export function Navbar() {
 
               {publicKey && (
                 <>
-                  <Link
-                    href="/elections"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${isActive('/elections')
-                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-800/50'
-                      }`}
-                  >
-                    Elections
-                  </Link>
-                  {isAdmin && (
+                  {isAdmin ? (
                     <Link
                       href="/admin"
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${isActive('/admin') || pathname?.startsWith('/admin/')
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-800/50'
-                        }`}
+                      className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
+                        isActive('/admin') || pathname?.startsWith('/admin/')
+                          ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-800/50'
+                      }`}
                     >
                       Admin
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/elections"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
+                        isActive('/elections') || pathname?.startsWith('/elections/')
+                          ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-800/50'
+                      }`}
+                    >
+                      Voter
                     </Link>
                   )}
                 </>
