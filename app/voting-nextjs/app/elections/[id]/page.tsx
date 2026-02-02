@@ -33,6 +33,7 @@ import {
   X,
   Shield,
   ExternalLink,
+  Scale,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -437,11 +438,21 @@ export default function VoterElectionDetailPage() {
     !hasVoted &&
     (!isWhitelist || registrationStatus === RegistrationStatus.Approved);
 
-  // For results: find the winner
-  const winner = candidates.length > 0
-    ? [...candidates].sort((a, b) => b.voteCount - a.voteCount)[0]
-    : null;
+  // For results: find the winner(s) and detect draws
   const totalVotes = election?.totalVotes ?? 0;
+  const sortedCandidates = [...candidates].sort((a, b) => b.voteCount - a.voteCount);
+
+  // Determine winners (handle draws)
+  let winners: CandidateData[] = [];
+  let isDraw = false;
+
+  if (sortedCandidates.length > 0 && totalVotes > 0) {
+    const maxVotes = sortedCandidates[0].voteCount;
+    winners = sortedCandidates.filter((c) => c.voteCount === maxVotes);
+    isDraw = winners.length > 1;
+  }
+
+  const winner = winners.length > 0 ? winners[0] : null;
 
   // --- RENDER ---
   if (loading) {
@@ -450,7 +461,7 @@ export default function VoterElectionDetailPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="w-10 h-10 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-gray-400 text-sm">Loading election...</p>
+            <p className="text-slate-600 dark:text-gray-400 text-sm">Loading election...</p>
           </div>
         </div>
       </AppLayout>
@@ -463,9 +474,9 @@ export default function VoterElectionDetailPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-            <p className="text-gray-400">{error || 'Election not found'}</p>
+            <p className="text-slate-600 dark:text-gray-400">{error || 'Election not found'}</p>
             <Link href="/elections">
-              <Button variant="outline" className="mt-4 border-gray-600">
+              <Button variant="outline" className="mt-4 border-slate-300 dark:border-gray-600">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back
               </Button>
             </Link>
@@ -480,28 +491,28 @@ export default function VoterElectionDetailPage() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Back */}
         <Link href="/elections">
-          <Button variant="ghost" className="mb-5 text-gray-400 hover:text-white">
+          <Button variant="ghost" className="mb-5 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Elections
           </Button>
         </Link>
 
         {/* Election Header */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 mb-6">
+        <div className="bg-white/80 dark:bg-slate-800/50 border border-violet-200/50 dark:border-slate-700 rounded-xl p-6 mb-6 shadow-sm">
           <div className="flex items-start justify-between flex-wrap gap-3 mb-3">
-            <h1 className="text-2xl font-bold text-white">{election.title}</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{election.title}</h1>
             <div className="flex items-center gap-2">
               <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getElectionStatusColor(election.status)}`}>
                 {getElectionStatusLabel(election.status)}
               </span>
               <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                isWhitelist ? 'bg-blue-500/15 text-blue-400' : 'bg-green-500/15 text-green-400'
+                isWhitelist ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400' : 'bg-green-500/15 text-green-600 dark:text-green-400'
               }`}>
                 {isWhitelist ? '🔒 Whitelist' : '🌐 Open'}
               </span>
             </div>
           </div>
-          {election.description && <p className="text-gray-400 text-sm mb-4">{election.description}</p>}
-          <div className="flex items-center gap-6 text-xs text-gray-500 flex-wrap">
+          {election.description && <p className="text-slate-600 dark:text-gray-400 text-sm mb-4">{election.description}</p>}
+          <div className="flex items-center gap-6 text-xs text-slate-500 dark:text-gray-500 flex-wrap">
             <span className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
               {formatElectionTime(election.startTime)} — {formatElectionTime(election.endTime)}
@@ -511,7 +522,7 @@ export default function VoterElectionDetailPage() {
               {election.candidateCount} candidates · {election.totalVotes} votes
             </span>
             {isActive && (
-              <span className="flex items-center gap-1.5 text-yellow-500">
+              <span className="flex items-center gap-1.5 text-yellow-600 dark:text-yellow-500">
                 <Clock className="w-3.5 h-3.5" />
                 Ends in {getTimeRemaining(election.endTime)}
               </span>
@@ -565,18 +576,42 @@ export default function VoterElectionDetailPage() {
           </div>
         )}
 
-        {/* Winner Banner — shown when finalized */}
-        {isFinalized && winner && totalVotes > 0 && (
-          <div className="bg-gradient-to-r from-yellow-500/10 to-purple-500/10 border border-yellow-500/30 rounded-xl p-5 mb-6 flex items-center gap-5">
-            <div className="w-14 h-14 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-              <Trophy className="w-7 h-7 text-yellow-400" />
+        {/* Winner/Draw Banner — shown when finalized */}
+        {isFinalized && winners.length > 0 && totalVotes > 0 && (
+          <div className={`rounded-xl p-5 mb-6 flex items-center gap-5 ${
+            isDraw
+              ? 'bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/30'
+              : 'bg-gradient-to-r from-yellow-500/10 to-violet-500/10 border border-yellow-500/30'
+          }`}>
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${
+              isDraw ? 'bg-orange-500/20' : 'bg-yellow-500/20'
+            }`}>
+              {isDraw ? (
+                <Scale className="w-7 h-7 text-orange-500 dark:text-orange-400" />
+              ) : (
+                <Trophy className="w-7 h-7 text-yellow-500 dark:text-yellow-400" />
+              )}
             </div>
             <div>
-              <p className="text-xs text-yellow-400 font-semibold uppercase tracking-wider mb-0.5">Winner</p>
-              <p className="text-xl font-bold text-white">{winner.name}</p>
-              <p className="text-sm text-gray-400">
-                {winner.voteCount} votes ({totalVotes > 0 ? ((winner.voteCount / totalVotes) * 100).toFixed(1) : 0}% of {totalVotes} total)
-              </p>
+              {isDraw ? (
+                <>
+                  <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold uppercase tracking-wider mb-0.5">Draw</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">
+                    {winners.map((w) => w.name).join(' & ')}
+                  </p>
+                  <p className="text-sm text-slate-600 dark:text-gray-400">
+                    Tied with {winners[0].voteCount} votes each ({((winners[0].voteCount / totalVotes) * 100).toFixed(1)}%)
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400 font-semibold uppercase tracking-wider mb-0.5">Winner</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">{winner?.name}</p>
+                  <p className="text-sm text-slate-600 dark:text-gray-400">
+                    {winner?.voteCount} votes ({totalVotes > 0 ? ((winner!.voteCount / totalVotes) * 100).toFixed(1) : 0}% of {totalVotes} total)
+                  </p>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -610,25 +645,25 @@ export default function VoterElectionDetailPage() {
         )}
 
         {/* Candidates */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
-          <div className="p-5 border-b border-gray-700">
-            <h2 className="text-lg font-semibold text-white">
+        <div className="bg-white/80 dark:bg-slate-800/50 border border-violet-200/50 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+          <div className="p-5 border-b border-slate-200 dark:border-slate-700">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
               {isFinalized ? 'Final Results' : 'Candidates'}
             </h2>
           </div>
 
-          <div className="divide-y divide-gray-700/50">
+          <div className="divide-y divide-slate-200/50 dark:divide-slate-700/50">
             {candidates.map((candidate) => {
               const isSelected = selectedCandidate === candidate.publicKey;
               const isMyVote = myVotedCandidateKey === candidate.publicKey;
               const percentage = totalVotes > 0 ? (candidate.voteCount / totalVotes) * 100 : 0;
-              const isWinner = isFinalized && winner && candidate.publicKey === winner.publicKey && totalVotes > 0;
+              const isTopCandidate = isFinalized && winners.some((w) => w.publicKey === candidate.publicKey) && totalVotes > 0;
 
               return (
                 <div
                   key={candidate.publicKey}
                   className={`p-5 transition-colors ${
-                    isSelected ? 'bg-purple-500/10' : 'hover:bg-gray-800/40'
+                    isSelected ? 'bg-violet-500/10 dark:bg-purple-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                   } ${canVote ? 'cursor-pointer' : ''}`}
                   onClick={() => canVote && setSelectedCandidate(candidate.publicKey)}
                 >
@@ -638,48 +673,64 @@ export default function VoterElectionDetailPage() {
                       {canVote ? (
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                           isSelected
-                            ? 'border-purple-500 bg-purple-500'
-                            : 'border-gray-600'
+                            ? 'border-violet-500 bg-violet-500'
+                            : 'border-slate-400 dark:border-slate-600'
                         }`}>
                           {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                         </div>
                       ) : isMyVote ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-400" />
-                      ) : isWinner ? (
-                        <Trophy className="w-5 h-5 text-yellow-400" />
+                        <CheckCircle2 className="w-5 h-5 text-green-500 dark:text-green-400" />
+                      ) : isTopCandidate ? (
+                        isDraw ? (
+                          <Scale className="w-5 h-5 text-orange-500 dark:text-orange-400" />
+                        ) : (
+                          <Trophy className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
+                        )
                       ) : (
-                        <div className="w-5 h-5 rounded-full border-2 border-gray-700" />
+                        <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-700" />
                       )}
                     </div>
 
                     {/* Candidate info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-white">{candidate.name}</h3>
+                        <h3 className="font-semibold text-slate-900 dark:text-white">{candidate.name}</h3>
                         {isMyVote && (
-                          <span className="px-2 py-0.5 bg-green-500/15 text-green-400 text-xs rounded-full">Your Vote</span>
+                          <span className="px-2 py-0.5 bg-green-500/15 text-green-600 dark:text-green-400 text-xs rounded-full">Your Vote</span>
                         )}
-                        {isWinner && (
-                          <span className="px-2 py-0.5 bg-yellow-500/15 text-yellow-400 text-xs rounded-full flex items-center gap-1">
-                            <Trophy className="w-3 h-3" /> Winner
-                          </span>
+                        {isTopCandidate && (
+                          isDraw ? (
+                            <span className="px-2 py-0.5 bg-orange-500/15 text-orange-600 dark:text-orange-400 text-xs rounded-full flex items-center gap-1">
+                              <Scale className="w-3 h-3" /> Tied
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs rounded-full flex items-center gap-1">
+                              <Trophy className="w-3 h-3" /> Winner
+                            </span>
+                          )
                         )}
                       </div>
                       {candidate.description && (
-                        <p className="text-gray-400 text-sm mb-2">{candidate.description}</p>
+                        <p className="text-slate-600 dark:text-gray-400 text-sm mb-2">{candidate.description}</p>
                       )}
 
                       {/* Vote progress bar — always shown for context */}
                       {(isFinalized || hasVoted || election.status === ElectionStatus.Ended) && (
                         <div className="mt-2">
-                          <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-500 mb-1">
                             <span>{candidate.voteCount} votes</span>
                             <span>{percentage.toFixed(1)}%</span>
                           </div>
-                          <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                          <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full transition-all duration-700 ${
-                                isWinner ? 'bg-yellow-500' : isMyVote ? 'bg-green-500' : 'bg-purple-500'
+                                isTopCandidate
+                                  ? isDraw
+                                    ? 'bg-orange-500'
+                                    : 'bg-yellow-500'
+                                  : isMyVote
+                                  ? 'bg-green-500'
+                                  : 'bg-violet-500'
                               }`}
                               style={{ width: `${percentage}%` }}
                             />
@@ -695,11 +746,11 @@ export default function VoterElectionDetailPage() {
 
           {/* Vote button */}
           {canVote && (
-            <div className="p-5 border-t border-gray-700">
+            <div className="p-5 border-t border-slate-200 dark:border-slate-700">
               <Button
                 onClick={handleCastVote}
                 disabled={!selectedCandidate || isVoting}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-40"
+                className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-40"
               >
                 {isVoting ? (
                   <>
@@ -723,11 +774,11 @@ export default function VoterElectionDetailPage() {
       {showReceipt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowReceipt(false)} />
-          <div className="relative bg-gray-900 border border-gray-700 rounded-2xl max-w-md w-full p-8 shadow-2xl">
+          <div className="relative bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl max-w-md w-full p-8 shadow-2xl">
             {/* Close */}
             <button
               onClick={() => setShowReceipt(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-slate-500 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -739,39 +790,39 @@ export default function VoterElectionDetailPage() {
               </div>
             </div>
 
-            <h2 className="text-xl font-bold text-white text-center mb-1">Vote Confirmed</h2>
-            <p className="text-gray-400 text-sm text-center mb-6">Your vote has been recorded on-chain</p>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white text-center mb-1">Vote Confirmed</h2>
+            <p className="text-slate-600 dark:text-gray-400 text-sm text-center mb-6">Your vote has been recorded on-chain</p>
 
             {/* Receipt details */}
-            <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 space-y-3">
+            <div className="bg-slate-100 dark:bg-gray-800/60 border border-slate-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Election</span>
-                <span className="text-xs text-white font-medium truncate ml-4 text-right">{election?.title}</span>
+                <span className="text-xs text-slate-500 dark:text-gray-500">Election</span>
+                <span className="text-xs text-slate-900 dark:text-white font-medium truncate ml-4 text-right">{election?.title}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Candidate</span>
-                <span className="text-xs text-white font-medium">
+                <span className="text-xs text-slate-500 dark:text-gray-500">Candidate</span>
+                <span className="text-xs text-slate-900 dark:text-white font-medium">
                   {candidates.find(c => c.publicKey === (myVotedCandidateKey || selectedCandidate))?.name ?? '—'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Voter</span>
-                <span className="text-xs text-white font-mono">
+                <span className="text-xs text-slate-500 dark:text-gray-500">Voter</span>
+                <span className="text-xs text-slate-900 dark:text-white font-mono">
                   {publicKey ? `${publicKey.toString().slice(0, 8)}...${publicKey.toString().slice(-6)}` : '—'}
                 </span>
               </div>
               {receiptTimestamp > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Timestamp</span>
-                  <span className="text-xs text-white font-medium">
+                  <span className="text-xs text-slate-500 dark:text-gray-500">Timestamp</span>
+                  <span className="text-xs text-slate-900 dark:text-white font-medium">
                     {new Date(receiptTimestamp * 1000).toLocaleString()}
                   </span>
                 </div>
               )}
               {receiptTxHash && (
-                <div className="pt-2 border-t border-gray-700">
+                <div className="pt-2 border-t border-slate-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Transaction</span>
+                    <span className="text-xs text-slate-500 dark:text-gray-500">Transaction</span>
                     <a
                       href={`https://solscan.io/tx/${receiptTxHash}?cluster=localnet`}
                       target="_blank"

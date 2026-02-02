@@ -293,8 +293,8 @@ export default function RegistrationPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-            <p className="text-gray-400">Please connect your wallet to view your registrations</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Wallet Not Connected</h2>
+            <p className="text-slate-600 dark:text-gray-400">Please connect your wallet to view your registrations</p>
           </div>
         </div>
       </AppLayout>
@@ -310,42 +310,42 @@ export default function RegistrationPage() {
             <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
               <UserCheck className="w-5 h-5 text-blue-400" />
             </div>
-            <h1 className="text-3xl font-bold text-white">Registrations</h1>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Registrations</h1>
           </div>
-          <p className="text-gray-400">
+          <p className="text-slate-600 dark:text-gray-400">
             Track your voter registration status across all whitelist elections
           </p>
         </div>
 
         {/* Summary stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+          <div className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-              <span className="text-gray-400 text-xs">Approved</span>
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500 dark:bg-green-400" />
+              <span className="text-slate-600 dark:text-gray-400 text-xs">Approved</span>
             </div>
-            <p className="text-2xl font-bold text-green-400">{approvedCount}</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{approvedCount}</p>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+          <div className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-              <span className="text-gray-400 text-xs">Pending</span>
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 dark:bg-yellow-400" />
+              <span className="text-slate-600 dark:text-gray-400 text-xs">Pending</span>
             </div>
-            <p className="text-2xl font-bold text-yellow-400">{pendingCount}</p>
+            <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{pendingCount}</p>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+          <div className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-              <span className="text-gray-400 text-xs">Rejected</span>
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500 dark:bg-red-400" />
+              <span className="text-slate-600 dark:text-gray-400 text-xs">Rejected</span>
             </div>
-            <p className="text-2xl font-bold text-red-400">{rejectedCount}</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">{rejectedCount}</p>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+          <div className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-              <span className="text-gray-400 text-xs">Revoked</span>
+              <div className="w-2.5 h-2.5 rounded-full bg-red-600 dark:bg-red-500" />
+              <span className="text-slate-600 dark:text-gray-400 text-xs">Revoked</span>
             </div>
-            <p className="text-2xl font-bold text-red-500">{revokedCount}</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-500">{revokedCount}</p>
           </div>
         </div>
 
@@ -359,7 +359,7 @@ export default function RegistrationPage() {
             <p className="text-red-400">{error}</p>
             <Button
               variant="outline"
-              className="mt-4 border-gray-700"
+              className="mt-4 border-slate-300 dark:border-gray-700"
               onClick={fetchRegistrations}
             >
               Retry
@@ -370,15 +370,15 @@ export default function RegistrationPage() {
             {/* Existing registrations */}
             {registrations.length > 0 && (
               <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-300 mb-4 flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-blue-400" />
+                <h2 className="text-lg font-semibold text-slate-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                   Your Registrations
                 </h2>
                 <div className="space-y-3">
                   {registrations.map((reg) => (
                     <div
                       key={reg.electionPublicKey}
-                      className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden hover:border-gray-600 transition-all duration-200"
+                      className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg overflow-hidden hover:border-violet-300 dark:hover:border-gray-600 transition-all duration-200 shadow-sm"
                     >
                       {/* Status accent line */}
                       <div
@@ -399,7 +399,7 @@ export default function RegistrationPage() {
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold text-white truncate">
+                              <h3 className="font-semibold text-slate-900 dark:text-white truncate">
                                 {reg.electionTitle}
                               </h3>
                               <span
@@ -418,7 +418,7 @@ export default function RegistrationPage() {
                               >
                                 {getRegistrationLabel(reg.registrationStatus)}
                               </span>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-slate-500 dark:text-gray-500">
                                 · Registered{' '}
                                 {new Date(reg.registeredAt * 1000).toLocaleDateString('en-US', {
                                   month: 'short',
@@ -452,7 +452,7 @@ export default function RegistrationPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-gray-700 hover:border-gray-600 flex-shrink-0"
+                            className="border-slate-300 dark:border-gray-700 hover:border-violet-400 dark:hover:border-gray-600 flex-shrink-0"
                           >
                             {reg.registrationStatus === RegistrationStatus.Approved
                               ? 'Go Vote'
@@ -470,8 +470,8 @@ export default function RegistrationPage() {
             {/* Unregistered whitelist elections — offer to register */}
             {unregisteredElections.length > 0 && (
               <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-300 mb-4 flex items-center gap-2">
-                  <Plus className="w-4 h-4 text-blue-400" />
+                <h2 className="text-lg font-semibold text-slate-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                   Available to Register
                 </h2>
                 <div className="space-y-3">
@@ -490,10 +490,10 @@ export default function RegistrationPage() {
                           <div className="flex items-center gap-3">
                             <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
                             <div>
-                              <p className="text-sm font-semibold text-green-400">
-                                Registration requested for <span className="text-white">{election.title}</span>
+                              <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                Registration requested for <span className="text-slate-900 dark:text-white">{election.title}</span>
                               </p>
-                              <p className="text-xs text-gray-500 mt-0.5">
+                              <p className="text-xs text-slate-500 dark:text-gray-500 mt-0.5">
                                 Awaiting admin approval. Check back soon.
                               </p>
                             </div>
@@ -505,11 +505,11 @@ export default function RegistrationPage() {
                     return (
                       <div
                         key={election.publicKey}
-                        className="bg-gray-800/50 border border-gray-700 rounded-lg p-5 flex items-center justify-between gap-4 flex-wrap"
+                        className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg p-5 flex items-center justify-between gap-4 flex-wrap shadow-sm"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-white truncate">{election.title}</h3>
+                            <h3 className="font-semibold text-slate-900 dark:text-white truncate">{election.title}</h3>
                             <span
                               className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getElectionStatusColor(
                                 election.electionStatus
@@ -521,7 +521,7 @@ export default function RegistrationPage() {
                               Whitelist
                             </span>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
                             Not registered · Request approval to participate
                           </p>
                           {errMsg && (
@@ -556,12 +556,12 @@ export default function RegistrationPage() {
 
             {/* Empty state — no registrations and nothing to register for */}
             {registrations.length === 0 && unregisteredElections.length === 0 && (
-              <div className="text-center py-20 bg-gray-800/30 border border-gray-700 rounded-lg">
-                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <UserCheck className="w-8 h-8 text-gray-600" />
+              <div className="text-center py-20 bg-slate-100/50 dark:bg-gray-800/30 border border-slate-200 dark:border-gray-700 rounded-lg">
+                <div className="w-16 h-16 bg-slate-200 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <UserCheck className="w-8 h-8 text-slate-400 dark:text-gray-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-300 mb-2">No registrations</h3>
-                <p className="text-gray-500 max-w-md mx-auto">
+                <h3 className="text-lg font-semibold text-slate-700 dark:text-gray-300 mb-2">No registrations</h3>
+                <p className="text-slate-500 dark:text-gray-500 max-w-md mx-auto">
                   You aren't registered for any whitelist elections yet. Browse elections to find ones you can register for, or participate in open elections directly.
                 </p>
                 <Link href="/elections">

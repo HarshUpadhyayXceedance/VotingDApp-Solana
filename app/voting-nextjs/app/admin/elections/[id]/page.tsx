@@ -212,8 +212,8 @@ export default function ElectionDetailPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-            <p className="text-gray-400">Please connect your wallet</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Wallet Not Connected</h2>
+            <p className="text-slate-600 dark:text-gray-400">Please connect your wallet</p>
           </div>
         </div>
       </AppLayout>
@@ -226,7 +226,7 @@ export default function ElectionDetailPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-gray-400">Loading election...</p>
+            <p className="text-slate-600 dark:text-gray-400">Loading election...</p>
           </div>
         </div>
       </AppLayout>
@@ -239,8 +239,8 @@ export default function ElectionDetailPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Error</h2>
-            <p className="text-gray-400">{error || 'Election not found'}</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Error</h2>
+            <p className="text-slate-600 dark:text-gray-400">{error || 'Election not found'}</p>
             <Link href="/admin/elections">
               <Button variant="outline" className="mt-4">
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -264,11 +264,11 @@ export default function ElectionDetailPage() {
         </Link>
 
         {/* Election Header */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-8 mb-8">
+        <div className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg p-8 mb-8 shadow-sm">
           <div className="flex items-start justify-between mb-6">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
-                <h1 className="text-4xl font-bold">{election.title}</h1>
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-white">{election.title}</h1>
                 <span
                   className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getElectionStatusColor(
                     election.status
@@ -278,9 +278,9 @@ export default function ElectionDetailPage() {
                 </span>
               </div>
               {election.description && (
-                <p className="text-gray-400 text-lg mb-4">{election.description}</p>
+                <p className="text-slate-600 dark:text-gray-400 text-lg mb-4">{election.description}</p>
               )}
-              <div className="flex items-center gap-6 text-gray-400">
+              <div className="flex items-center gap-6 text-slate-500 dark:text-gray-400">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   <span className="text-sm">ID: {election.electionId}</span>
@@ -331,41 +331,41 @@ export default function ElectionDetailPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+          <div className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm mb-1">Candidates</p>
-                <p className="text-3xl font-bold">{election.candidateCount}</p>
+                <p className="text-slate-600 dark:text-gray-400 text-sm mb-1">Candidates</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">{election.candidateCount}</p>
               </div>
-              <UserPlus className="w-12 h-12 text-purple-400 opacity-50" />
+              <UserPlus className="w-12 h-12 text-violet-500 dark:text-purple-400 opacity-50" />
             </div>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+          <div className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm mb-1">Total Votes</p>
-                <p className="text-3xl font-bold">{election.totalVotes}</p>
+                <p className="text-slate-600 dark:text-gray-400 text-sm mb-1">Total Votes</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">{election.totalVotes}</p>
               </div>
-              <TrendingUp className="w-12 h-12 text-green-400 opacity-50" />
+              <TrendingUp className="w-12 h-12 text-green-500 dark:text-green-400 opacity-50" />
             </div>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+          <div className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm mb-1">Registration</p>
-                <p className="text-xl font-bold">
+                <p className="text-slate-600 dark:text-gray-400 text-sm mb-1">Registration</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
                   {election.voterRegistrationType?.open ? 'Open' : 'Whitelist'}
                 </p>
               </div>
-              <Users className="w-12 h-12 text-blue-400 opacity-50" />
+              <Users className="w-12 h-12 text-blue-500 dark:text-blue-400 opacity-50" />
             </div>
           </div>
         </div>
 
         {/* Candidates Section */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
-          <div className="p-6 border-b border-gray-700 flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Candidates</h2>
+        <div className="bg-white/80 dark:bg-gray-800/50 border border-violet-200/50 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-slate-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Candidates</h2>
             {canModifyElection(election) && (
               <Button
                 onClick={() => setShowAddCandidateModal(true)}
@@ -379,8 +379,8 @@ export default function ElectionDetailPage() {
 
           {candidates.length === 0 ? (
             <div className="p-8 text-center">
-              <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">No candidates added yet</p>
+              <Users className="w-12 h-12 text-slate-400 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-slate-600 dark:text-gray-400 mb-4">No candidates added yet</p>
               {canModifyElection(election) && (
                 <Button onClick={() => setShowAddCandidateModal(true)} variant="outline">
                   Add Your First Candidate
