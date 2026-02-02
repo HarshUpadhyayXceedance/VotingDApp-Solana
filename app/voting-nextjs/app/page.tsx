@@ -28,6 +28,7 @@ import {
 import { Navbar } from '@/components/shared/Navbar';
 import { Footer } from '@/components/shared/Footer';
 import { AnimatedBackground } from '@/components/shared/AnimatedBackground';
+import { ParticlesBackground } from '@/components/shared/ParticlesBackground';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -60,8 +61,9 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white overflow-x-hidden transition-colors">
       <AnimatedBackground />
+      <ParticlesBackground />
 
       <Navbar />
 

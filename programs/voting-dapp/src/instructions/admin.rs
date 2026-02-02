@@ -224,7 +224,7 @@ pub struct UnpauseSystem<'info> {
         bump = admin_registry.bump
     )]
     pub admin_registry: Account<'info, AdminRegistry>,
-    
+
     pub super_admin: Signer<'info>,
 }
 
@@ -233,11 +233,53 @@ pub fn unpause_system(ctx: Context<UnpauseSystem>) -> Result<()> {
         ctx.accounts.super_admin.key() == SUPER_ADMIN,
         VotingError::Unauthorized
     );
-    
+
     let admin_registry = &mut ctx.accounts.admin_registry;
     admin_registry.paused = false;
-    
+
     msg!("System unpaused");
-    
+
+    Ok(())
+}
+
+// CLOSE ADMIN REGISTRY (Emergency reset for incompatible structures)
+#[derive(Accounts)]
+pub struct CloseAdminRegistry<'info> {
+    #[account(mut)]
+    /// CHECK: Using UncheckedAccount to handle incompatible structures - manually validated
+    pub admin_registry: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub super_admin: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+pub fn close_admin_registry(ctx: Context<CloseAdminRegistry>) -> Result<()> {
+    require!(
+        ctx.accounts.super_admin.key() == SUPER_ADMIN,
+        VotingError::Unauthorized
+    );
+
+    // Verify this is the correct PDA
+    let (expected_pda, _bump) = Pubkey::find_program_address(
+        &[ADMIN_REGISTRY_SEED],
+        ctx.program_id
+    );
+    require!(
+        ctx.accounts.admin_registry.key() == expected_pda,
+        VotingError::Unauthorized
+    );
+
+    // Transfer all lamports to super admin (closes the account)
+    let dest_starting_lamports = ctx.accounts.super_admin.lamports();
+    **ctx.accounts.super_admin.lamports.borrow_mut() = dest_starting_lamports
+        .checked_add(ctx.accounts.admin_registry.lamports())
+        .unwrap();
+    **ctx.accounts.admin_registry.lamports.borrow_mut() = 0;
+
+    msg!("Admin registry closed - rent returned to super admin");
+    msg!("Super admin can now reinitialize with correct structure");
+
     Ok(())
 }

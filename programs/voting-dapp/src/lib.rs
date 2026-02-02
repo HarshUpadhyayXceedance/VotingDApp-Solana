@@ -18,6 +18,10 @@ pub mod voting_dapp {
         instructions::admin::initialize_admin_registry(ctx)
     }
 
+    pub fn close_admin_registry(ctx: Context<CloseAdminRegistry>) -> Result<()> {
+        instructions::admin::close_admin_registry(ctx)
+    }
+
     pub fn add_admin(
         ctx: Context<AddAdmin>,
         name: String,

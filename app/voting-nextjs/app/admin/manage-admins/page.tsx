@@ -39,10 +39,10 @@ export default function ManageAdminsPage() {
   const [newAdminAddress, setNewAdminAddress] = useState('');
   const [newAdminName, setNewAdminName] = useState('');
   const [newAdminPermissions, setNewAdminPermissions] = useState<any>({
-    can_manage_elections: true,
-    can_manage_candidates: true,
-    can_manage_voters: true,
-    can_finalize_results: true,
+    canManageElections: true,
+    canManageCandidates: true,
+    canManageVoters: true,
+    canFinalizeResults: true,
   });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
@@ -80,16 +80,16 @@ export default function ManageAdminsPage() {
           // Debug: Log the entire account structure
           console.log('🔍 Full admin account:', JSON.stringify(account, null, 2));
 
-          // Check permissions - use snake_case
+          // Check permissions - use camelCase (Anchor auto-converts from Rust snake_case)
           const p = account.permissions;
           console.log('📋 Permissions object:', p);
           console.log('📋 Individual permissions:', {
-            can_manage_elections: p?.can_manage_elections,
-            can_manage_candidates: p?.can_manage_candidates,
-            can_manage_voters: p?.can_manage_voters,
-            can_finalize_results: p?.can_finalize_results,
+            canManageElections: p?.canManageElections,
+            canManageCandidates: p?.canManageCandidates,
+            canManageVoters: p?.canManageVoters,
+            canFinalizeResults: p?.canFinalizeResults,
           });
-          const isOk = p?.can_manage_elections && p?.can_manage_candidates && p?.can_manage_voters && p?.can_finalize_results;
+          const isOk = p?.canManageElections && p?.canManageCandidates && p?.canManageVoters && p?.canFinalizeResults;
           console.log('✅ Permissions OK:', isOk);
           setSuperAdminPermissionsOk(!!isOk);
         } catch (e) {
@@ -138,12 +138,12 @@ export default function ManageAdminsPage() {
 
       console.log('🔧 Repairing admin permissions...');
 
-      // Use snake_case to match Rust struct
+      // Use camelCase for JavaScript - Anchor auto-converts to snake_case for Rust
       const fullPermissions = {
-        can_manage_elections: true,
-        can_manage_candidates: true,
-        can_manage_voters: true,
-        can_finalize_results: true,
+        canManageElections: true,
+        canManageCandidates: true,
+        canManageVoters: true,
+        canFinalizeResults: true,
       };
 
       // @ts-ignore
@@ -202,12 +202,12 @@ export default function ManageAdminsPage() {
       console.log('Admin Registry PDA:', adminRegistryPda.toString());
       console.log('Admin PDA:', adminPda.toString());
 
-      // Use snake_case to match Rust struct
+      // Use camelCase for JavaScript - Anchor auto-converts to snake_case for Rust
       const fullPermissions = {
-        can_manage_elections: true,
-        can_manage_candidates: true,
-        can_manage_voters: true,
-        can_finalize_results: true,
+        canManageElections: true,
+        canManageCandidates: true,
+        canManageVoters: true,
+        canFinalizeResults: true,
       };
 
       // @ts-ignore
@@ -289,10 +289,10 @@ export default function ManageAdminsPage() {
         setNewAdminAddress('');
         setNewAdminName('');
         setNewAdminPermissions({
-          can_manage_elections: true,
-          can_manage_candidates: true,
-          can_manage_voters: true,
-          can_finalize_results: true,
+          canManageElections: true,
+          canManageCandidates: true,
+          canManageVoters: true,
+          canFinalizeResults: true,
         });
         setAddSuccess(false);
         setShowAddForm(false);
@@ -516,11 +516,11 @@ export default function ManageAdminsPage() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="manage-elections"
-                        checked={newAdminPermissions.can_manage_elections}
+                        checked={newAdminPermissions.canManageElections}
                         onCheckedChange={(checked) =>
                           setNewAdminPermissions({
                             ...newAdminPermissions,
-                            can_manage_elections: checked as boolean,
+                            canManageElections: checked as boolean,
                           })
                         }
                       />
@@ -531,11 +531,11 @@ export default function ManageAdminsPage() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="manage-candidates"
-                        checked={newAdminPermissions.can_manage_candidates}
+                        checked={newAdminPermissions.canManageCandidates}
                         onCheckedChange={(checked) =>
                           setNewAdminPermissions({
                             ...newAdminPermissions,
-                            can_manage_candidates: checked as boolean,
+                            canManageCandidates: checked as boolean,
                           })
                         }
                       />
@@ -546,11 +546,11 @@ export default function ManageAdminsPage() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="manage-voters"
-                        checked={newAdminPermissions.can_manage_voters}
+                        checked={newAdminPermissions.canManageVoters}
                         onCheckedChange={(checked) =>
                           setNewAdminPermissions({
                             ...newAdminPermissions,
-                            can_manage_voters: checked as boolean,
+                            canManageVoters: checked as boolean,
                           })
                         }
                       />
@@ -561,11 +561,11 @@ export default function ManageAdminsPage() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="finalize-results"
-                        checked={newAdminPermissions.can_finalize_results}
+                        checked={newAdminPermissions.canFinalizeResults}
                         onCheckedChange={(checked) =>
                           setNewAdminPermissions({
                             ...newAdminPermissions,
-                            can_finalize_results: checked as boolean,
+                            canFinalizeResults: checked as boolean,
                           })
                         }
                       />
@@ -689,22 +689,22 @@ export default function ManageAdminsPage() {
                             {String(admin.authority)}
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {admin.permissions.can_manage_elections && (
+                            {admin.permissions.canManageElections && (
                               <span className="px-3 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
                                 Elections
                               </span>
                             )}
-                            {admin.permissions.can_manage_candidates && (
+                            {admin.permissions.canManageCandidates && (
                               <span className="px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">
                                 Candidates
                               </span>
                             )}
-                            {admin.permissions.can_manage_voters && (
+                            {admin.permissions.canManageVoters && (
                               <span className="px-3 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
                                 Voters
                               </span>
                             )}
-                            {admin.permissions.can_finalize_results && (
+                            {admin.permissions.canFinalizeResults && (
                               <span className="px-3 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
                                 Finalize
                               </span>

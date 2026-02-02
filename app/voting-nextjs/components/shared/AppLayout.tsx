@@ -24,7 +24,7 @@ export function AppLayout({ children, sidebar, showFooter = true }: AppLayoutPro
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black text-gray-900 dark:text-white transition-colors">
       {/* Use consistent Navbar component */}
       <Navbar />
 
@@ -33,7 +33,7 @@ export function AppLayout({ children, sidebar, showFooter = true }: AppLayoutPro
 
       {/* Main Content - Dynamic margin based on sidebar width */}
       <main
-        className="pt-20 transition-all duration-300 min-h-screen"
+        className="pt-[84px] transition-all duration-300 min-h-screen"
         style={{
           marginLeft: hasSidebar ? `${sidebarWidth}px` : '0'
         }}
@@ -44,12 +44,12 @@ export function AppLayout({ children, sidebar, showFooter = true }: AppLayoutPro
       {/* Footer - Dynamic margin based on sidebar width */}
       {showFooter && (
         <footer
-          className="border-t border-gray-800 py-6 transition-all duration-300"
+          className="border-t border-gray-200 dark:border-gray-800 py-6 transition-all duration-300"
           style={{
             marginLeft: hasSidebar ? `${sidebarWidth}px` : '0'
           }}
         >
-          <div className="container mx-auto px-4 text-center text-gray-400 text-sm">
+          <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400 text-sm">
             © {new Date().getFullYear()} SolVote. All rights reserved.
           </div>
         </footer>

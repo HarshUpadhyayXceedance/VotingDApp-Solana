@@ -701,6 +701,35 @@
       "args": []
     },
     {
+      "name": "close_admin_registry",
+      "discriminator": [
+        184,
+        43,
+        156,
+        100,
+        110,
+        82,
+        127,
+        250
+      ],
+      "accounts": [
+        {
+          "name": "admin_registry",
+          "writable": true
+        },
+        {
+          "name": "super_admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "create_election",
       "discriminator": [
         190,

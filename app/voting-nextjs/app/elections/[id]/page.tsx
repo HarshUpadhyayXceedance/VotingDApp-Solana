@@ -239,7 +239,7 @@ export default function VoterElectionDetailPage() {
 
       console.log('✅ Instruction built successfully');
 
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
       console.log('📦 Latest blockhash:', blockhash);
 
       const transaction = new Transaction({
@@ -247,10 +247,11 @@ export default function VoterElectionDetailPage() {
         feePayer: publicKey,
       });
 
-      // Add compute budget to ensure sufficient priority fee
+      // Add compute budget with VERY high priority fee for devnet
+      // 1,000,000 microLamports = 0.001 SOL per tx (still very cheap)
       transaction.add(
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
-        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 })
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 }),
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1_000_000 }) // 10x higher for devnet
       );
       transaction.add(castVoteInstruction);
 
@@ -281,11 +282,48 @@ export default function VoterElectionDetailPage() {
 
       const tx = await sendTransaction(transaction, connection, {
         skipPreflight: false,
-        preflightCommitment: 'finalized',
+        preflightCommitment: 'confirmed',
       });
-      await connection.confirmTransaction(tx, 'finalized');
 
-      console.log('✅ Vote cast:', tx);
+      console.log('✅ Transaction sent:', tx);
+      console.log('⏳ Confirming transaction (this may take a while on devnet)...');
+
+      // Try to confirm, but if it times out, check if vote was actually recorded
+      let voteSucceeded = false;
+      try {
+        const confirmation = await connection.confirmTransaction({
+          signature: tx,
+          blockhash: blockhash,
+          lastValidBlockHeight: lastValidBlockHeight,
+        }, 'confirmed');
+
+        if (confirmation.value.err) {
+          throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+        }
+
+        voteSucceeded = true;
+        console.log('✅ Vote confirmed:', tx);
+      } catch (confirmErr: any) {
+        // Confirmation timed out - check if vote was actually recorded
+        console.log('⚠️ Confirmation timed out, checking if vote was recorded...');
+
+        try {
+          // Check if vote record exists
+          // @ts-ignore
+          const voteRecord = await program.account.voteRecord.fetch(voteRecordPda);
+          if (voteRecord && voteRecord.voter.toString() === publicKey.toString()) {
+            voteSucceeded = true;
+            console.log('✅ Vote was recorded successfully despite timeout!');
+          }
+        } catch (fetchErr) {
+          // Vote record doesn't exist, transaction actually failed
+          throw confirmErr; // Re-throw the original confirmation error
+        }
+      }
+
+      if (!voteSucceeded) {
+        throw new Error('Vote was not recorded');
+      }
 
       // Show receipt
       setReceiptTxHash(tx);
@@ -312,6 +350,12 @@ export default function VoterElectionDetailPage() {
       else if (err.message?.includes('VoterNotRegistered')) msg = 'You are not registered for this election';
       else if (err.message?.includes('ElectionNotActive')) msg = 'This election is not currently active';
       else if (err.message?.includes('User rejected')) msg = 'Transaction rejected by wallet';
+      else if (err.message?.includes('block height exceeded') || err.message?.includes('BlockheightExceeded')) {
+        msg = 'Transaction timed out due to slow devnet. Refresh the page to check if your vote was recorded, or try voting again.';
+      }
+      else if (err.message?.includes('Transaction was not confirmed') || err.message?.includes('TransactionExpired')) {
+        msg = 'Transaction confirmation timed out. Refresh the page to check if your vote was recorded, or try voting again.';
+      }
       else if (err.message) msg = err.message;
       setVoteError(msg);
     } finally {
