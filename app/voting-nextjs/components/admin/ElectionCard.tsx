@@ -55,12 +55,12 @@ export function ElectionCard({
   const hasActions = showStart || showEnd || showFinalize;
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700 hover:border-purple-500/50 transition-all p-6">
+    <Card className="bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-purple-500/50 transition-all p-6 shadow-sm">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-xl font-bold text-white">{election.title}</h3>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">{election.title}</h3>
             <span
               className={`px-3 py-1 rounded-full text-xs font-semibold ${getElectionStatusColor(
                 election.status
@@ -70,7 +70,7 @@ export function ElectionCard({
             </span>
           </div>
           {election.description && (
-            <p className="text-gray-400 text-sm line-clamp-2 mb-3">
+            <p className="text-slate-600 dark:text-gray-400 text-sm line-clamp-2 mb-3">
               {election.description}
             </p>
           )}
@@ -80,36 +80,36 @@ export function ElectionCard({
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="flex items-center gap-2 text-sm">
-          <Users className="w-4 h-4 text-purple-400" />
-          <span className="text-gray-400">
+          <Users className="w-4 h-4 text-violet-500 dark:text-purple-400" />
+          <span className="text-slate-600 dark:text-gray-400">
             {election.candidateCount} Candidates
           </span>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <TrendingUp className="w-4 h-4 text-green-400" />
-          <span className="text-gray-400">{election.totalVotes} Votes</span>
+          <TrendingUp className="w-4 h-4 text-emerald-500 dark:text-green-400" />
+          <span className="text-slate-600 dark:text-gray-400">{election.totalVotes} Votes</span>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <Calendar className="w-4 h-4 text-blue-400" />
-          <span className="text-gray-400 text-xs">
+          <Calendar className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+          <span className="text-slate-600 dark:text-gray-400 text-xs">
             {formatElectionTime(election.startTime)}
           </span>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <Clock className="w-4 h-4 text-yellow-400" />
-          <span className="text-gray-400 text-xs">
+          <Clock className="w-4 h-4 text-amber-500 dark:text-yellow-400" />
+          <span className="text-slate-600 dark:text-gray-400 text-xs">
             {formatElectionTime(election.endTime)}
           </span>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-2 pt-4 border-t border-gray-700">
+      <div className="flex flex-col gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
         {/* View Details Button - Always Show */}
         <Link href={`/admin/elections/${election.publicKey}`} className="w-full">
           <Button
             variant="outline"
-            className="w-full border-gray-600 hover:border-purple-500"
+            className="w-full border-slate-300 dark:border-slate-600 hover:border-violet-500 dark:hover:border-purple-500"
             size="sm"
           >
             <Eye className="w-4 h-4 mr-2" />

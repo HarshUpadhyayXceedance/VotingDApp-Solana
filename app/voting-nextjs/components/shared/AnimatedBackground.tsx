@@ -5,22 +5,29 @@ export function AnimatedBackground() {
       {/* Container for all animated orbs */}
       <div className="absolute top-0 left-0 w-full h-full">
 
-        {/* Purple Orb - Top Left */}
+        {/* Light mode: Violet/Slate orbs | Dark mode: Purple orbs */}
+        {/* Top Left Orb */}
         <div
-          className="absolute -top-48 -left-24 w-[600px] h-[600px] bg-purple-500 rounded-full opacity-10 dark:opacity-15 blur-3xl animate-float transition-opacity"
+          className="absolute -top-48 -left-24 w-[600px] h-[600px] rounded-full blur-3xl animate-float transition-all duration-500 bg-violet-400 opacity-20 dark:bg-purple-500 dark:opacity-15"
           style={{ animationDelay: '0s' }}
         />
 
-        {/* Green Orb - Bottom Right */}
+        {/* Bottom Right Orb */}
         <div
-          className="absolute -bottom-36 -right-36 w-[500px] h-[500px] bg-green-400 rounded-full opacity-10 dark:opacity-15 blur-3xl animate-float transition-opacity"
+          className="absolute -bottom-36 -right-36 w-[500px] h-[500px] rounded-full blur-3xl animate-float transition-all duration-500 bg-indigo-300 opacity-20 dark:bg-green-400 dark:opacity-15"
           style={{ animationDelay: '-5s' }}
         />
 
-        {/* Blue Orb - Middle Right */}
+        {/* Middle Right Orb */}
         <div
-          className="absolute top-1/2 right-[10%] w-[400px] h-[400px] bg-blue-500 rounded-full opacity-8 dark:opacity-10 blur-3xl animate-float transition-opacity"
+          className="absolute top-1/2 right-[10%] w-[400px] h-[400px] rounded-full blur-3xl animate-float transition-all duration-500 bg-purple-300 opacity-15 dark:bg-blue-500 dark:opacity-10"
           style={{ animationDelay: '-10s' }}
+        />
+
+        {/* Additional light mode orb */}
+        <div
+          className="absolute top-1/4 left-1/3 w-[350px] h-[350px] rounded-full blur-3xl animate-float transition-all duration-500 bg-fuchsia-200 opacity-15 dark:bg-transparent dark:opacity-0"
+          style={{ animationDelay: '-7s' }}
         />
       </div>
 

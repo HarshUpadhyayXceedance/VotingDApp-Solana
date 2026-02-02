@@ -83,7 +83,7 @@ export function Navbar() {
   const isActive = (path: string) => pathname === path;
 
   return (
-    <nav className="sticky top-0 z-50 bg-gradient-to-r from-white via-gray-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 backdrop-blur-xl border-b border-purple-500/20 shadow-lg shadow-purple-500/5 transition-colors">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Left: Logo */}
@@ -91,16 +91,16 @@ export function Navbar() {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-green-400 rounded-2xl blur-md opacity-75 group-hover:opacity-100 transition-opacity" />
               <div className="relative w-12 h-12 bg-gradient-to-br from-purple-500 to-green-400 rounded-2xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
-                <div className="w-9 h-9 bg-white dark:bg-gray-950 rounded-xl flex items-center justify-center">
-                  <Vote className="w-5 h-5 text-gray-900 dark:text-white" />
+                <div className="w-9 h-9 bg-white dark:bg-slate-950 rounded-xl flex items-center justify-center">
+                  <Vote className="w-5 h-5 text-slate-900 dark:text-white" />
                 </div>
               </div>
             </div>
             <div className="hidden sm:block">
-              <span className="text-2xl font-black bg-gradient-to-r from-purple-400 via-purple-300 to-green-400 bg-clip-text text-transparent">
+              <span className="text-2xl font-black bg-gradient-to-r from-violet-600 via-purple-500 to-indigo-500 bg-clip-text text-transparent">
                 SolVote
               </span>
-              <div className="text-[10px] text-gray-600 dark:text-gray-500 font-medium tracking-wider uppercase -mt-1">
+              <div className="text-[10px] text-slate-500 dark:text-slate-500 font-medium tracking-wider uppercase -mt-1">
                 Decentralized Voting
               </div>
             </div>
@@ -114,8 +114,8 @@ export function Navbar() {
                 href="/elections"
                 className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
                   isActive('/elections') || pathname?.startsWith('/elections/')
-                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800/50'
+                    ? 'bg-violet-600 text-white shadow-sm'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
                 Elections
@@ -127,8 +127,8 @@ export function Navbar() {
                   href="/admin"
                   className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
                     isActive('/admin') || pathname?.startsWith('/admin/')
-                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800/50'
+                      ? 'bg-violet-600 text-white shadow-sm'
+                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
                   Admin
@@ -141,9 +141,9 @@ export function Navbar() {
           <div className="flex items-center gap-3">
             {/* Connection Status Indicator */}
             {publicKey && (
-              <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-xs font-medium text-green-400">
+              <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                   {isAdmin ? (isSuperAdmin ? 'Super Admin' : 'Admin') : 'Voter'}
                 </span>
               </div>
@@ -153,14 +153,14 @@ export function Navbar() {
             {mounted && (
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="w-11 h-11 flex items-center justify-center bg-gray-200/50 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700 rounded-xl hover:border-purple-500 hover:bg-gray-300/50 dark:hover:bg-gray-800 transition-all hover:scale-105"
+                className="w-11 h-11 flex items-center justify-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-violet-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all hover:scale-105"
                 aria-label="Toggle theme"
                 suppressHydrationWarning
               >
                 {theme === 'dark' ? (
-                  <Sun className="w-5 h-5 text-yellow-400" />
+                  <Sun className="w-5 h-5 text-amber-400" />
                 ) : (
-                  <Moon className="w-5 h-5 text-purple-400" />
+                  <Moon className="w-5 h-5 text-violet-500" />
                 )}
               </button>
             )}
@@ -168,20 +168,20 @@ export function Navbar() {
             {/* Wallet Button */}
             <div className="hidden sm:block">
               {mounted && (
-                <WalletMultiButton className="!bg-gradient-to-r !from-purple-500 !to-purple-600 hover:!from-purple-600 hover:!to-purple-700 !rounded-xl !h-11 !px-5 !font-semibold !text-sm !shadow-lg !shadow-purple-500/30 !transition-all hover:!scale-105" />
+                <WalletMultiButton className="!bg-violet-600 hover:!bg-violet-700 !rounded-xl !h-11 !px-5 !font-semibold !text-sm !shadow-sm !transition-all hover:!scale-105" />
               )}
             </div>
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden w-11 h-11 flex items-center justify-center bg-gray-200/50 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700 rounded-xl hover:border-purple-500 transition-all"
+              className="md:hidden w-11 h-11 flex items-center justify-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-violet-500 transition-all"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-gray-900 dark:text-white" />
+                <X className="w-5 h-5 text-slate-900 dark:text-white" />
               ) : (
-                <Menu className="w-5 h-5 text-gray-900 dark:text-white" />
+                <Menu className="w-5 h-5 text-slate-900 dark:text-white" />
               )}
             </button>
           </div>
@@ -189,12 +189,12 @@ export function Navbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-800">
+          <div className="md:hidden py-4 border-t border-slate-200 dark:border-slate-800">
             <div className="flex flex-col gap-2">
               {/* Mobile Wallet Button */}
               <div className="sm:hidden mb-2">
                 {mounted && (
-                  <WalletMultiButton className="!w-full !bg-gradient-to-r !from-purple-500 !to-purple-600 hover:!from-purple-600 hover:!to-purple-700 !rounded-xl !h-11 !px-5 !font-semibold !text-sm !shadow-lg !shadow-purple-500/30" />
+                  <WalletMultiButton className="!w-full !bg-violet-600 hover:!bg-violet-700 !rounded-xl !h-11 !px-5 !font-semibold !text-sm !shadow-sm" />
                 )}
               </div>
 
@@ -206,8 +206,8 @@ export function Navbar() {
                     onClick={() => setMobileMenuOpen(false)}
                     className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
                       isActive('/elections') || pathname?.startsWith('/elections/')
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50'
+                        ? 'bg-violet-600 text-white'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     Elections
@@ -220,8 +220,8 @@ export function Navbar() {
                       onClick={() => setMobileMenuOpen(false)}
                       className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
                         isActive('/admin') || pathname?.startsWith('/admin/')
-                          ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50'
+                          ? 'bg-violet-600 text-white'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                       }`}
                     >
                       Admin

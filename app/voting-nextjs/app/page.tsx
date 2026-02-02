@@ -61,7 +61,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white overflow-x-hidden transition-colors">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-x-hidden transition-colors">
       <AnimatedBackground />
       <ParticlesBackground />
 
@@ -73,9 +73,9 @@ export default function LandingPage() {
           {/* Left: Content */}
           <div className="space-y-8">
             {/* Badge */}
-            <div className="aos-animate inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full w-fit">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-sm font-semibold text-purple-400">
+            <div className="aos-animate inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 dark:bg-purple-500/10 border border-purple-500/30 dark:border-purple-500/20 rounded-full w-fit">
+              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
                 Powered by Solana Blockchain
               </span>
             </div>
@@ -89,7 +89,7 @@ export default function LandingPage() {
             </h1>
 
             {/* Subheading */}
-            <p className="aos-animate text-xl text-gray-400 leading-relaxed max-w-2xl">
+            <p className="aos-animate text-xl text-gray-600 dark:text-gray-400 leading-relaxed max-w-2xl">
               Experience the future of governance with lightning-fast, transparent,
               and tamper-proof voting on the Solana blockchain.
             </p>
@@ -107,7 +107,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-gray-700 hover:border-purple-500 hover:bg-gray-900"
+                className="border-slate-300 dark:border-slate-700 hover:border-violet-500 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-800 dark:text-white"
               >
                 <BookOpen className="w-5 h-5 mr-2" />
                 Documentation
@@ -116,16 +116,16 @@ export default function LandingPage() {
 
             {/* Trust Indicators */}
             <div className="aos-animate flex flex-wrap gap-6 pt-4">
-              <div className="flex items-center gap-2 text-gray-400">
-                <ShieldCheck className="w-5 h-5 text-green-400" />
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <ShieldCheck className="w-5 h-5 text-green-600 dark:text-green-400" />
                 <span className="text-sm font-medium">Audited</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <Code2 className="w-5 h-5 text-green-400" />
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <Code2 className="w-5 h-5 text-green-600 dark:text-green-400" />
                 <span className="text-sm font-medium">Open Source</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <Zap className="w-5 h-5 text-green-400" />
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <Zap className="w-5 h-5 text-green-600 dark:text-green-400" />
                 <span className="text-sm font-medium">400ms Blocks</span>
               </div>
             </div>
@@ -133,9 +133,9 @@ export default function LandingPage() {
 
           {/* Right: Visual Card */}
           <div className="aos-animate relative">
-            <Card className="relative bg-gray-900/50 backdrop-blur-xl border-gray-800 p-8 shadow-2xl">
+            <Card className="relative bg-white/80 dark:bg-slate-900/50 backdrop-blur-xl border-violet-200/50 dark:border-slate-800 p-8 shadow-2xl shadow-violet-500/10 dark:shadow-purple-500/10">
               {/* Glow Effect */}
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-green-400 rounded-3xl opacity-20 blur-xl" />
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-green-400 rounded-3xl opacity-10 dark:opacity-20 blur-xl" />
 
               <div className="relative space-y-8">
                 {/* Icon */}
@@ -149,13 +149,13 @@ export default function LandingPage() {
                     <div className="text-4xl font-bold bg-gradient-to-r from-purple-500 to-green-400 bg-clip-text text-transparent">
                       10,247
                     </div>
-                    <div className="text-sm text-gray-400 mt-1">Total Votes</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Total Votes</div>
                   </div>
                   <div>
                     <div className="text-4xl font-bold bg-gradient-to-r from-purple-500 to-green-400 bg-clip-text text-transparent">
                       99.9%
                     </div>
-                    <div className="text-sm text-gray-400 mt-1">Uptime</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Uptime</div>
                   </div>
                 </div>
               </div>
@@ -166,34 +166,34 @@ export default function LandingPage() {
 
       {/* Stats Bar */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card className="bg-gray-900/50 backdrop-blur-xl border-gray-800 p-8">
+        <Card className="bg-white/80 dark:bg-slate-900/50 backdrop-blur-xl border-violet-200/50 dark:border-slate-800 p-8 shadow-lg shadow-violet-500/5 dark:shadow-none">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="aos-animate flex items-center gap-4">
-              <Database className="w-8 h-8 text-purple-400 flex-shrink-0" />
+              <Database className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0" />
               <div>
-                <div className="text-2xl font-bold">100%</div>
-                <div className="text-sm text-gray-400">On-Chain</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">100%</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">On-Chain</div>
               </div>
             </div>
             <div className="aos-animate flex items-center gap-4">
-              <Clock className="w-8 h-8 text-purple-400 flex-shrink-0" />
+              <Clock className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0" />
               <div>
-                <div className="text-2xl font-bold">400ms</div>
-                <div className="text-sm text-gray-400">Block Time</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">400ms</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Block Time</div>
               </div>
             </div>
             <div className="aos-animate flex items-center gap-4">
-              <Coins className="w-8 h-8 text-purple-400 flex-shrink-0" />
+              <Coins className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0" />
               <div>
-                <div className="text-2xl font-bold">$0.00025</div>
-                <div className="text-sm text-gray-400">Per Vote</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">$0.00025</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Per Vote</div>
               </div>
             </div>
             <div className="aos-animate flex items-center gap-4">
-              <Activity className="w-8 h-8 text-purple-400 flex-shrink-0" />
+              <Activity className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0" />
               <div>
-                <div className="text-2xl font-bold">Zero</div>
-                <div className="text-sm text-gray-400">Downtime</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">Zero</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Downtime</div>
               </div>
             </div>
           </div>
@@ -203,10 +203,10 @@ export default function LandingPage() {
       {/* Features Section */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="text-center mb-16">
-          <h2 className="aos-animate text-4xl md:text-5xl font-bold mb-4">
+          <h2 className="aos-animate text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
             Why Choose SolVote?
           </h2>
-          <p className="aos-animate text-xl text-gray-400 max-w-3xl mx-auto">
+          <p className="aos-animate text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
             Built on Solana's high-performance blockchain for unmatched speed and security
           </p>
         </div>
@@ -246,29 +246,29 @@ export default function LandingPage() {
           ].map((feature, index) => (
             <Card
               key={index}
-              className="aos-animate group bg-gray-900/50 backdrop-blur-xl border-gray-800 p-8 hover:border-purple-500 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/20 hover:-translate-y-2"
+              className="aos-animate group bg-white/80 dark:bg-slate-900/50 backdrop-blur-xl border-violet-200/50 dark:border-slate-800 p-8 hover:border-violet-400 dark:hover:border-purple-500 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/10 dark:hover:shadow-purple-500/20 hover:-translate-y-2"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500/10 to-green-400/10 border border-purple-500/20 rounded-2xl flex items-center justify-center mb-6">
-                <feature.icon className="w-8 h-8 text-purple-400" />
+              <div className="w-16 h-16 bg-gradient-to-br from-violet-500/10 to-indigo-400/10 dark:from-purple-500/10 dark:to-green-400/10 border border-violet-400/30 dark:border-purple-500/20 rounded-2xl flex items-center justify-center mb-6">
+                <feature.icon className="w-8 h-8 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="text-2xl font-bold mb-3">{feature.title}</h3>
-              <p className="text-gray-400 leading-relaxed">{feature.description}</p>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">{feature.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
             </Card>
           ))}
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section className="relative z-10 bg-gray-900/30 border-y border-gray-800">
+      <section className="relative z-10 bg-gradient-to-r from-violet-100/50 via-indigo-50/30 to-violet-100/50 dark:from-slate-900/30 dark:via-slate-900/30 dark:to-slate-900/30 border-y border-violet-200/50 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left */}
             <div className="space-y-8">
               <div>
-                <h2 className="aos-animate text-4xl md:text-5xl font-bold mb-4">
+                <h2 className="aos-animate text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
                   How It Works
                 </h2>
-                <p className="aos-animate text-xl text-gray-400">
+                <p className="aos-animate text-xl text-gray-600 dark:text-gray-400">
                   Three simple steps to participate in blockchain-powered governance
                 </p>
               </div>
@@ -307,18 +307,18 @@ export default function LandingPage() {
               ].map((step, index) => (
                 <Card
                   key={index}
-                  className="aos-animate group bg-gray-900/50 backdrop-blur-xl border-gray-800 p-6 hover:border-purple-500 transition-all duration-300 hover:translate-x-2"
+                  className="aos-animate group bg-white/80 dark:bg-slate-900/50 backdrop-blur-xl border-violet-200/50 dark:border-slate-800 p-6 hover:border-violet-400 dark:hover:border-purple-500 transition-all duration-300 hover:translate-x-2"
                 >
                   <div className="flex items-center gap-6">
                     <div className="text-6xl font-bold bg-gradient-to-r from-purple-500 to-green-400 bg-clip-text text-transparent">
                       {step.number}
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                      <p className="text-gray-400">{step.description}</p>
+                      <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">{step.title}</h3>
+                      <p className="text-gray-600 dark:text-gray-400">{step.description}</p>
                     </div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500/10 to-green-400/10 border border-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <step.icon className="w-6 h-6 text-purple-400" />
+                    <div className="w-12 h-12 bg-gradient-to-br from-violet-500/10 to-indigo-400/10 dark:from-purple-500/10 dark:to-green-400/10 border border-violet-400/30 dark:border-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <step.icon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     </div>
                   </div>
                 </Card>
@@ -331,10 +331,10 @@ export default function LandingPage() {
       {/* Use Cases Section */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="text-center mb-16">
-          <h2 className="aos-animate text-4xl md:text-5xl font-bold mb-4">
+          <h2 className="aos-animate text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
             Built for Every Community
           </h2>
-          <p className="aos-animate text-xl text-gray-400 max-w-3xl mx-auto">
+          <p className="aos-animate text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
             From DAOs to enterprises, SolVote powers transparent decision-making
           </p>
         </div>
@@ -359,26 +359,26 @@ export default function LandingPage() {
           ].map((useCase, index) => (
             <Card
               key={index}
-              className="aos-animate text-center bg-gray-900/50 backdrop-blur-xl border-gray-800 p-10 hover:border-purple-500 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/20 hover:-translate-y-2"
+              className="aos-animate text-center bg-white/80 dark:bg-slate-900/50 backdrop-blur-xl border-violet-200/50 dark:border-slate-800 p-10 hover:border-violet-400 dark:hover:border-purple-500 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/10 dark:hover:shadow-purple-500/20 hover:-translate-y-2"
             >
               <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-green-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/50">
                 <useCase.icon className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-2xl font-bold mb-3">{useCase.title}</h3>
-              <p className="text-gray-400 leading-relaxed">{useCase.description}</p>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">{useCase.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{useCase.description}</p>
             </Card>
           ))}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="relative z-10 bg-gradient-to-r from-purple-500/10 to-green-400/5 border-y border-gray-800">
+      <section className="relative z-10 bg-gradient-to-r from-violet-500/10 via-indigo-500/5 to-purple-400/10 dark:from-purple-500/10 dark:via-transparent dark:to-green-400/5 border-y border-violet-200/50 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
           <div className="space-y-8">
-            <h2 className="aos-animate text-4xl md:text-5xl font-bold">
+            <h2 className="aos-animate text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
               Ready to Shape the Future?
             </h2>
-            <p className="aos-animate text-xl text-gray-400 max-w-2xl mx-auto">
+            <p className="aos-animate text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Join thousands of users participating in transparent, on-chain governance
             </p>
             <Button

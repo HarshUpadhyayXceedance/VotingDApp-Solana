@@ -60,10 +60,10 @@ export function ParticlesBackground() {
         },
         particles: {
           color: {
-            value: isDark ? ['#9945ff', '#14f195', '#8b5cf6'] : ['#9945ff', '#14f195', '#7c3aed'],
+            value: isDark ? ['#9945ff', '#14f195', '#8b5cf6'] : ['#8b5cf6', '#a78bfa', '#6366f1'],
           },
           links: {
-            color: isDark ? '#9945ff' : '#7c3aed',
+            color: isDark ? '#9945ff' : '#8b5cf6',
             distance: 150,
             enable: true,
             opacity: isDark ? 0.3 : 0.2,

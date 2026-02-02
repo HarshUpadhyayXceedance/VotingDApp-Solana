@@ -58,7 +58,7 @@ export function VoterSidebar({ pendingCount = 0 }: VoterSidebarProps) {
   return (
     <div
       className={cn(
-        'fixed left-0 top-20 h-[calc(100vh-5rem)] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 z-40 flex flex-col',
+        'fixed left-0 top-20 h-[calc(100vh-5rem)] bg-white/95 dark:bg-slate-900/95 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 z-40 flex flex-col backdrop-blur-sm',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
@@ -76,16 +76,16 @@ export function VoterSidebar({ pendingCount = 0 }: VoterSidebarProps) {
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative',
+                    'flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative',
                     isActive
-                      ? 'bg-purple-600 text-white'
-                      : 'text-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                      ? 'bg-violet-600 text-white shadow-sm'
+                      : 'text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                   )}
                 >
                   <Icon
                     className={cn(
                       'w-5 h-5 flex-shrink-0',
-                      isActive ? 'text-white' : 'text-gray-700 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'
+                      isActive ? 'text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
                     )}
                   />
                   {!collapsed && (
@@ -101,10 +101,10 @@ export function VoterSidebar({ pendingCount = 0 }: VoterSidebarProps) {
 
                   {/* Tooltip for collapsed state */}
                   {collapsed && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                    <div className="absolute left-full ml-2 px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg border border-slate-200 dark:border-slate-700">
                       {item.name}
                       {item.badge && (
-                        <span className="ml-2 px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded-full text-xs">
+                        <span className="ml-2 px-1.5 py-0.5 bg-purple-500/20 text-purple-500 dark:text-purple-400 rounded-full text-xs">
                           {item.badge}
                         </span>
                       )}
@@ -118,12 +118,12 @@ export function VoterSidebar({ pendingCount = 0 }: VoterSidebarProps) {
       </nav>
 
       {/* Footer Section */}
-      <div className="p-2 border-t border-gray-200 dark:border-gray-800">
+      <div className="p-2 border-t border-slate-200 dark:border-slate-800">
         {/* User Info - Only show when expanded and wallet connected */}
         {!collapsed && publicKey && (
-          <div className="mb-2 p-3 bg-gray-200/60 dark:bg-gray-800/60 rounded-lg">
-            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Connected Wallet</div>
-            <div className="font-mono text-xs text-gray-900 dark:text-white truncate">
+          <div className="mb-2 p-3 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="text-xs text-slate-600 dark:text-slate-400 mb-1 font-medium">Connected Wallet</div>
+            <div className="font-mono text-xs text-slate-900 dark:text-white truncate">
               {publicKey.toString().slice(0, 8)}...{publicKey.toString().slice(-6)}
             </div>
           </div>
@@ -133,8 +133,8 @@ export function VoterSidebar({ pendingCount = 0 }: VoterSidebarProps) {
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
-            'w-full flex items-center justify-center px-3 py-2 rounded-lg transition-all duration-200',
-            'text-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700 hover:border-purple-500'
+            'w-full flex items-center justify-center px-3 py-2 rounded-xl transition-all duration-200',
+            'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-300 dark:border-slate-700 hover:border-violet-500'
           )}
           title={collapsed ? 'Expand' : 'Collapse'}
         >

@@ -178,8 +178,8 @@ export default function ElectionsPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-            <p className="text-gray-400">Please connect your wallet</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Wallet Not Connected</h2>
+            <p className="text-slate-600 dark:text-slate-400">Please connect your wallet</p>
           </div>
         </div>
       </AppLayout>
@@ -192,8 +192,8 @@ export default function ElectionsPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
-            <p className="text-gray-400">You are not an admin</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Access Denied</h2>
+            <p className="text-slate-600 dark:text-slate-400">You are not an admin</p>
           </div>
         </div>
       </AppLayout>
@@ -210,7 +210,7 @@ export default function ElectionsPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">All Elections</h1>
-            <p className="text-gray-400">View and manage all elections</p>
+            <p className="text-slate-600 dark:text-slate-400">View and manage all elections</p>
           </div>
           <Button
             onClick={() => setShowCreateModal(true)}
@@ -223,7 +223,7 @@ export default function ElectionsPage() {
 
         {/* Filter Buttons */}
         <div className="flex items-center gap-2 mb-6">
-          <Filter className="w-5 h-5 text-gray-400" />
+          <Filter className="w-5 h-5 text-slate-500 dark:text-slate-400" />
           <Button
             onClick={() => setStatusFilter('all')}
             variant={statusFilter === 'all' ? 'default' : 'outline'}
@@ -274,8 +274,8 @@ export default function ElectionsPage() {
             </div>
           ) : filteredElections.length === 0 ? (
             <div className="text-center py-16">
-              <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">
+              <Calendar className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-600 dark:text-slate-400 mb-4">
                 {statusFilter === 'all' ? 'No elections yet' : `No ${statusFilter} elections`}
               </p>
               <Button onClick={() => setShowCreateModal(true)} variant="outline">

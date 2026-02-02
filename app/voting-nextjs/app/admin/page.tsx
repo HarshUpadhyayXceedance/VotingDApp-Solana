@@ -199,8 +199,8 @@ export default function AdminDashboard() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-            <p className="text-gray-400">Please connect your wallet</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Wallet Not Connected</h2>
+            <p className="text-slate-600 dark:text-slate-400">Please connect your wallet</p>
           </div>
         </div>
       </AppLayout>
@@ -213,8 +213,8 @@ export default function AdminDashboard() {
         <div className="min-h-screen flex items-center justify-center p-4">
           <div className="max-w-md w-full text-center">
             <Shield className="w-20 h-20 text-purple-400 mx-auto mb-6" />
-            <h2 className="text-3xl font-bold text-white mb-4">Setup Required</h2>
-            <p className="text-gray-400 mb-6">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">Setup Required</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
               The admin registry needs to be initialized.
             </p>
             <Button
@@ -241,8 +241,8 @@ export default function AdminDashboard() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
-            <p className="text-gray-400">You are not an admin</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Access Denied</h2>
+            <p className="text-slate-600 dark:text-slate-400">You are not an admin</p>
           </div>
         </div>
       </AppLayout>
@@ -258,7 +258,7 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-            <p className="text-gray-400">Manage elections and view statistics</p>
+            <p className="text-slate-600 dark:text-slate-400">Manage elections and view statistics</p>
           </div>
           <Button
             onClick={() => setShowCreateModal(true)}
@@ -275,7 +275,7 @@ export default function AdminDashboard() {
               <AlertCircle className="w-6 h-6 text-yellow-400 flex-shrink-0" />
               <div>
                 <h3 className="font-bold text-yellow-400 mb-2">Action Required</h3>
-                <p className="text-gray-300 mb-4">{error}</p>
+                <p className="text-slate-700 dark:text-slate-300 mb-4">{error}</p>
                 <Link href="/admin/manage-admins">
                   <Button className="bg-yellow-600 hover:bg-yellow-700">
                     <Shield className="w-4 h-4 mr-2" />
@@ -288,33 +288,33 @@ export default function AdminDashboard() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+          <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm mb-1">Total Elections</p>
-                <p className="text-3xl font-bold">{allElections.length}</p>
+                <p className="text-slate-600 dark:text-slate-400 text-sm mb-1">Total Elections</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">{allElections.length}</p>
               </div>
-              <Calendar className="w-12 h-12 text-purple-400 opacity-50" />
+              <Calendar className="w-12 h-12 text-violet-500 dark:text-purple-400 opacity-50" />
             </div>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+          <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm mb-1">Active Elections</p>
-                <p className="text-3xl font-bold">{activeElections.length}</p>
+                <p className="text-slate-600 dark:text-slate-400 text-sm mb-1">Active Elections</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">{activeElections.length}</p>
               </div>
-              <TrendingUp className="w-12 h-12 text-green-400 opacity-50" />
+              <TrendingUp className="w-12 h-12 text-emerald-500 dark:text-green-400 opacity-50" />
             </div>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+          <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm mb-1">Total Votes</p>
-                <p className="text-3xl font-bold">
+                <p className="text-slate-600 dark:text-slate-400 text-sm mb-1">Total Votes</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">
                   {allElections.reduce((sum, e) => sum + parseInt(e.totalVotes), 0)}
                 </p>
               </div>
-              <Users className="w-12 h-12 text-blue-400 opacity-50" />
+              <Users className="w-12 h-12 text-blue-500 dark:text-blue-400 opacity-50" />
             </div>
           </div>
         </div>
@@ -335,8 +335,8 @@ export default function AdminDashboard() {
             </div>
           ) : activeElections.length === 0 ? (
             <div className="text-center py-16">
-              <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">No active elections</p>
+              <TrendingUp className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-600 dark:text-slate-400 mb-4">No active elections</p>
               <Button onClick={() => setShowCreateModal(true)} variant="outline">
                 Create Your First Election
               </Button>

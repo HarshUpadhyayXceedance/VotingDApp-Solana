@@ -173,41 +173,41 @@ export default function VoterElectionsPage() {
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Browse Elections</h1>
-          <p className="text-gray-400">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Browse Elections</h1>
+          <p className="text-gray-600 dark:text-gray-400">
             Participate in active elections or review past results
           </p>
         </div>
 
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-              <Vote className="w-5 h-5 text-green-400" />
+          <div className="bg-white/80 dark:bg-slate-800/60 border border-violet-200/50 dark:border-slate-700 rounded-xl p-4 flex items-center gap-4 shadow-sm">
+            <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+              <Vote className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{activeCount}</p>
-              <p className="text-xs text-gray-400">Active</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">{activeCount}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Active</p>
             </div>
           </div>
-          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-purple-400" />
+          <div className="bg-white/80 dark:bg-slate-800/60 border border-violet-200/50 dark:border-slate-700 rounded-xl p-4 flex items-center gap-4 shadow-sm">
+            <div className="w-10 h-10 bg-violet-500/10 rounded-lg flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-violet-600 dark:text-purple-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{finalizedCount}</p>
-              <p className="text-xs text-gray-400">Finalized</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">{finalizedCount}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Finalized</p>
             </div>
           </div>
-          <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 flex items-center gap-4">
+          <div className="bg-white/80 dark:bg-slate-800/60 border border-violet-200/50 dark:border-slate-700 rounded-xl p-4 flex items-center gap-4 shadow-sm">
             <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-              <Users className="w-5 h-5 text-blue-400" />
+              <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {elections.filter(e => e.hasVoted).length}
               </p>
-              <p className="text-xs text-gray-400">Your Votes</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Your Votes</p>
             </div>
           </div>
         </div>
@@ -215,25 +215,25 @@ export default function VoterElectionsPage() {
         {/* Search + Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search elections..."
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-violet-200/50 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400 dark:focus:border-purple-500 transition-colors shadow-sm"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
+            <Filter className="w-4 h-4 text-slate-400 dark:text-slate-500" />
             {(['all', 'active', 'finalized'] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setStatusFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   statusFilter === f
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
+                    ? 'bg-violet-600 text-white shadow-md shadow-violet-500/30'
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-violet-200/50 dark:border-slate-700 hover:border-violet-400'
                 }`}
               >
                 {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -275,18 +275,18 @@ export default function VoterElectionsPage() {
               return (
                 <div
                   key={election.publicKey}
-                  className="bg-gray-800/50 border border-gray-700 rounded-xl p-5 hover:border-gray-600 transition-colors"
+                  className="bg-white/80 dark:bg-slate-800/50 border border-violet-200/50 dark:border-slate-700 rounded-xl p-5 hover:border-violet-300 dark:hover:border-slate-600 transition-colors shadow-sm hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       {/* Title row */}
                       <div className="flex items-center gap-3 flex-wrap mb-2">
-                        <h3 className="text-lg font-semibold text-white truncate">{election.title}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">{election.title}</h3>
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getElectionStatusColor(election.status)}`}>
                           {getElectionStatusLabel(election.status)}
                         </span>
                         {election.hasVoted && (
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-500/15 text-green-400 flex items-center gap-1">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-500/15 text-green-600 dark:text-green-400 flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" /> Voted
                           </span>
                         )}
@@ -294,11 +294,11 @@ export default function VoterElectionsPage() {
 
                       {/* Description */}
                       {election.description && (
-                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">{election.description}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{election.description}</p>
                       )}
 
                       {/* Meta row */}
-                      <div className="flex items-center gap-5 text-xs text-gray-500 flex-wrap">
+                      <div className="flex items-center gap-5 text-xs text-gray-500 dark:text-gray-500 flex-wrap">
                         <span className="flex items-center gap-1.5">
                           <Users className="w-3.5 h-3.5" />
                           {election.candidateCount} candidates
@@ -308,15 +308,15 @@ export default function VoterElectionsPage() {
                           {election.totalVotes} votes cast
                         </span>
                         {isActive && (
-                          <span className="flex items-center gap-1.5 text-yellow-500">
+                          <span className="flex items-center gap-1.5 text-yellow-600 dark:text-yellow-500">
                             <Clock className="w-3.5 h-3.5" />
                             Ends {getTimeRemaining(election.endTime)}
                           </span>
                         )}
                         <span className={`flex items-center gap-1.5 ${
                           election.voterRegistrationType === VoterRegistrationType.Whitelist
-                            ? 'text-blue-400'
-                            : 'text-green-400'
+                            ? 'text-blue-600 dark:text-blue-400'
+                            : 'text-green-600 dark:text-green-400'
                         }`}>
                           {election.voterRegistrationType === VoterRegistrationType.Whitelist ? '🔒 Whitelist' : '🌐 Open'}
                         </span>
@@ -354,7 +354,7 @@ export default function VoterElectionsPage() {
                         </Link>
                       ) : (
                         <Link href={`/elections/${election.publicKey}`}>
-                          <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:text-white">
+                          <Button size="sm" variant="outline" className="border-violet-200/50 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-violet-400 dark:hover:border-purple-500">
                             <ArrowRight className="w-3.5 h-3.5 mr-1.5" />
                             {isFinalized ? 'View Results' : 'Details'}
                           </Button>

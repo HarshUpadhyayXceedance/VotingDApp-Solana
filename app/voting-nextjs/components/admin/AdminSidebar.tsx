@@ -71,7 +71,7 @@ export function AdminSidebar({ isSuperAdmin = false }: AdminSidebarProps) {
   return (
     <div
       className={cn(
-        'fixed left-0 top-20 h-[calc(100vh-5rem)] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 z-40 flex flex-col',
+        'fixed left-0 top-20 h-[calc(100vh-5rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-r border-slate-200 dark:border-slate-800 transition-all duration-300 z-40 flex flex-col',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
@@ -91,21 +91,21 @@ export function AdminSidebar({ isSuperAdmin = false }: AdminSidebarProps) {
                   className={cn(
                     'flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative',
                     isActive
-                      ? 'bg-purple-600 text-white'
-                      : 'text-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                      ? 'bg-violet-600 text-white shadow-sm'
+                      : 'text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                   )}
                 >
                   <Icon
                     className={cn(
                       'w-5 h-5 flex-shrink-0',
-                      isActive ? 'text-white' : 'text-gray-700 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'
+                      isActive ? 'text-white' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
                     )}
                   />
                   {!collapsed && <span className="font-medium">{item.name}</span>}
 
                   {/* Tooltip for collapsed state */}
                   {collapsed && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg border border-slate-200 dark:border-slate-700">
                       {item.name}
                     </div>
                   )}
@@ -117,12 +117,12 @@ export function AdminSidebar({ isSuperAdmin = false }: AdminSidebarProps) {
       </nav>
 
       {/* Collapse Button */}
-      <div className="p-2 border-t border-gray-200 dark:border-gray-800">
+      <div className="p-2 border-t border-slate-200 dark:border-slate-800">
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
             'w-full flex items-center justify-center px-3 py-2 rounded-lg transition-all duration-200',
-            'text-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700 hover:border-purple-500'
+            'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-300 dark:border-slate-700 hover:border-violet-500'
           )}
           title={collapsed ? 'Expand' : 'Collapse'}
         >

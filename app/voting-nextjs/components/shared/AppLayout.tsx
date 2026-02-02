@@ -2,6 +2,8 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { Navbar } from './Navbar';
+import { ParticlesBackground } from './ParticlesBackground';
+import { AnimatedBackground } from './AnimatedBackground';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -24,16 +26,20 @@ export function AppLayout({ children, sidebar, showFooter = true }: AppLayoutPro
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black text-gray-900 dark:text-white transition-colors">
-      {/* Use consistent Navbar component */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white transition-colors overflow-x-hidden">
+      {/* Animated Backgrounds */}
+      <AnimatedBackground />
+      <ParticlesBackground />
+
+      {/* Navbar - Fixed at top */}
       <Navbar />
 
       {/* Sidebar - Below Navbar, Fixed Position */}
       {sidebar}
 
-      {/* Main Content - Dynamic margin based on sidebar width */}
+      {/* Main Content - No gap from navbar */}
       <main
-        className="pt-[84px] transition-all duration-300 min-h-screen"
+        className="pt-20 transition-all duration-300 min-h-screen relative z-10"
         style={{
           marginLeft: hasSidebar ? `${sidebarWidth}px` : '0'
         }}
@@ -41,15 +47,15 @@ export function AppLayout({ children, sidebar, showFooter = true }: AppLayoutPro
         {children}
       </main>
 
-      {/* Footer - Dynamic margin based on sidebar width */}
+      {/* Footer */}
       {showFooter && (
         <footer
-          className="border-t border-gray-200 dark:border-gray-800 py-6 transition-all duration-300"
+          className="border-t border-slate-200 dark:border-slate-800 py-6 transition-all duration-300 bg-white/80 dark:bg-transparent backdrop-blur-sm relative z-10"
           style={{
             marginLeft: hasSidebar ? `${sidebarWidth}px` : '0'
           }}
         >
-          <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400 text-sm">
+          <div className="container mx-auto px-4 text-center text-slate-600 dark:text-slate-400 text-sm">
             © {new Date().getFullYear()} SolVote. All rights reserved.
           </div>
         </footer>
