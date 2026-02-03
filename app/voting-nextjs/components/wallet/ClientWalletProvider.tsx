@@ -1,13 +1,28 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import { ReactNode, useMemo } from 'react';
+import {
+  ConnectionProvider,
+  WalletProvider,
+} from '@solana/wallet-adapter-react';
+import {
+  WalletModalProvider,
+} from '@solana/wallet-adapter-react-ui';
 
-const ClientWalletProvider = dynamic(
-  () =>
-    import('./WalletProvider').then(
-      (m) => m.WalletContextProvider
-    ),
-  { ssr: false }
-);
+import '@solana/wallet-adapter-react-ui/styles.css';
 
-export default ClientWalletProvider;
+export default function ClientWalletProvider({ children }: { children: ReactNode }) {
+  const endpoint = useMemo(() => 'https://api.devnet.solana.com', []);
+
+  const wallets = useMemo(() => [], []);
+
+  return (
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          {children}
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
+  );
+}

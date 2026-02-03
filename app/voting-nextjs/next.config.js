@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   devIndicators: false,
-  // Production optimizations
   poweredByHeader: false,
 
   // Image optimization

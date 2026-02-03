@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -33,7 +34,7 @@ export default function ElectionVotersPage() {
   const { publicKey } = useWallet();
   const program = useProgram();
 
-  const electionId = params.id as string;
+  const electionId = (params?.id as string) ?? '';
 
   const [election, setElection] = useState<any>(null);
   const [voters, setVoters] = useState<any[]>([]);

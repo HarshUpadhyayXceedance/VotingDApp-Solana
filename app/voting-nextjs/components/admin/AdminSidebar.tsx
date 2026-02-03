@@ -21,7 +21,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ isSuperAdmin = false }: AdminSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
 
   // Dispatch custom event when sidebar width changes
   useEffect(() => {

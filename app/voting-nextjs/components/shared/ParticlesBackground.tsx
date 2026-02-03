@@ -1,66 +1,51 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
-import Particles from '@tsparticles/react';
+import Particles, { initParticlesEngine } from '@tsparticles/react';
 import { loadSlim } from '@tsparticles/slim';
-import type { Engine } from '@tsparticles/engine';
 
 export function ParticlesBackground() {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [engineReady, setEngineReady] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    initParticlesEngine(async (engine) => {
+      await loadSlim(engine);
+    }).then(() => {
+      setEngineReady(true);
+    });
   }, []);
 
-  const particlesInit = useCallback(async (engine: Engine) => {
-    await loadSlim(engine);
-  }, []);
-
-  if (!mounted) return null;
+  if (!mounted || !engineReady) return null;
 
   const isDark = theme === 'dark';
 
   return (
     <Particles
       id="tsparticles"
-      init={particlesInit}
       className="fixed inset-0 z-0 pointer-events-none"
       options={{
-        background: {
-          color: {
-            value: 'transparent',
-          },
-        },
+        background: { color: { value: 'transparent' } },
         fpsLimit: 120,
         interactivity: {
           events: {
-            onClick: {
-              enable: true,
-              mode: 'push',
-            },
-            onHover: {
-              enable: true,
-              mode: 'repulse',
-            },
-            resize: {
-              enable: true,
-            } as any,
+            onClick: { enable: true, mode: 'push' },
+            onHover: { enable: true, mode: 'repulse' },
+            resize: {},
           },
           modes: {
-            push: {
-              quantity: 4,
-            },
-            repulse: {
-              distance: 200,
-              duration: 0.4,
-            },
+            push: { quantity: 4 },
+            repulse: { distance: 200, duration: 0.4 },
           },
         },
         particles: {
           color: {
-            value: isDark ? ['#9945ff', '#14f195', '#8b5cf6'] : ['#8b5cf6', '#a78bfa', '#6366f1'],
+            value: isDark
+              ? ['#9945ff', '#14f195', '#8b5cf6']
+              : ['#8b5cf6', '#a78bfa', '#6366f1'],
           },
           links: {
             color: isDark ? '#9945ff' : '#8b5cf6',
@@ -70,32 +55,21 @@ export function ParticlesBackground() {
             width: 1,
           },
           move: {
-            direction: 'none',
             enable: true,
-            outModes: {
-              default: 'bounce',
-            },
-            random: false,
             speed: 1,
-            straight: false,
+            outModes: { default: 'bounce' },
           },
           number: {
             density: {
               enable: true,
               width: 800,
               height: 800,
-            } as any,
+            },
             value: 80,
           },
-          opacity: {
-            value: isDark ? 0.5 : 0.3,
-          },
-          shape: {
-            type: 'circle',
-          },
-          size: {
-            value: { min: 1, max: 5 },
-          },
+          opacity: { value: isDark ? 0.5 : 0.3 },
+          shape: { type: 'circle' },
+          size: { value: { min: 1, max: 5 } },
         },
         detectRetina: true,
       }}

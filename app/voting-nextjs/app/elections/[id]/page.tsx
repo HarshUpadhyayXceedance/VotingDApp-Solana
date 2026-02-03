@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
@@ -53,7 +54,7 @@ export default function VoterElectionDetailPage() {
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const program = useProgram();
-  const electionId = params.id as string;
+  const electionId = (params?.id as string) ?? '';
 
   // Election data
   const [election, setElection] = useState<any>(null);
@@ -165,7 +166,7 @@ export default function VoterElectionDetailPage() {
         }
       }
     } catch (err: any) {
-      logger.error('Failed to fetch election detail', err, { electionId: id });
+      logger.error('Failed to fetch election detail', err, { electionId });
       setError('Failed to load election');
     } finally {
       setLoading(false);

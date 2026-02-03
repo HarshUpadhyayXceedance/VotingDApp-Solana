@@ -3,19 +3,21 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import ClientWalletProvider from '@/components/wallet/ClientWalletProvider';
 import ClientThemeProvider from '@/components/providers/ClientThemeProvider';
-
+export const dynamic = 'force-dynamic';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SolVote - Decentralized Voting on Solana',
-  description:
-    'Experience the future of governance with lightning-fast, transparent, and tamper-proof voting on the Solana blockchain.',
-  icons: { icon: '/favicon.ico' },
+  title: 'SolVote',
+  description: 'Decentralized voting on Solana',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ClientThemeProvider>
           <ClientWalletProvider>

@@ -38,7 +38,7 @@ import { useParams } from 'next/navigation';
 
 export default function ElectionDetailPage() {
   const params = useParams<{ id: string }>();
-  const electionId = params.id;
+  const electionId = (params?.id as string) ?? '';
 
   if (!electionId) {
     throw new Error('Election ID missing from route');
