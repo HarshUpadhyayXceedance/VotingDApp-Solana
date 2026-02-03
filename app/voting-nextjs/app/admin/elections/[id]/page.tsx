@@ -168,7 +168,13 @@ export default function ElectionDetailPage() {
           .rpc();
       }
 
+      if (!tx) {
+        throw new Error("Transaction signature missing");
+      }
+
       logger.transaction(`election ${action}ed`, tx, { electionId });
+
+
       fetchElectionData();
     } catch (error: any) {
       logger.error(`Failed to ${action} election`, error, { electionId });
