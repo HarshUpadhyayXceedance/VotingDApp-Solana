@@ -10,6 +10,7 @@ import {
   getCandidatePda
 } from '@/lib/helpers';
 import { MAX_NAME_LENGTH, MAX_DESCRIPTION_LENGTH, MAX_IMAGE_URL_LENGTH } from '@/lib/constants';
+import { logger } from '@/lib/logger';
 import {
   Dialog,
   DialogContent,
@@ -79,17 +80,15 @@ export function AddCandidateModal({
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [adminPda] = getAdminPda(publicKey, program.programId);
 
-      console.log('Adding candidate...');
-      console.log('Election:', electionPubkey.toString());
-      console.log('Authority:', publicKey.toString());
-      console.log('Admin PDA:', adminPda.toString());
+      logger.debug('Adding candidate', {
+        component: 'AddCandidateModal',
+        electionId: electionPubkey.toString(),
+      });
 
       // Fetch election to get candidate_count
       // @ts-ignore
       const electionAccount = await program.account.election.fetch(electionPubkey);
       const candidateId = electionAccount.candidateCount;
-
-      console.log('Candidate ID:', candidateId);
 
       // Derive candidate PDA
       const [candidatePda] = getCandidatePda(
@@ -97,8 +96,6 @@ export function AddCandidateModal({
         candidateId,
         program.programId
       );
-
-      console.log('Candidate PDA:', candidatePda.toString());
 
       // Add candidate transaction
       // @ts-ignore
@@ -118,8 +115,7 @@ export function AddCandidateModal({
         })
         .rpc();
 
-      console.log('✅ Candidate added:', tx);
-      console.log('Candidate PDA:', candidatePda.toString());
+      logger.transaction('candidate added', tx, { electionId: electionPublicKey });
       
       setSuccess(true);
       
@@ -132,7 +128,7 @@ export function AddCandidateModal({
         onSuccess();
       }, 1500);
     } catch (error: any) {
-      console.error('❌ Error adding candidate:', error);
+      logger.error('Failed to add candidate', error, { component: 'AddCandidateModal' });
       
       let errorMsg = 'Failed to add candidate';
       

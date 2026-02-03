@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { SystemProgram } from '@solana/web3.js';
+import { getAdminRegistryPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import {
   Dialog,
   DialogContent,
@@ -44,14 +46,12 @@ export function InitializeAdminRegistryModal({
       setError('');
 
       // Derive admin registry PDA
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
 
-      console.log('Initializing admin registry...');
-      console.log('Admin Registry PDA:', adminRegistryPda.toString());
-      console.log('Super Admin:', publicKey.toString());
+      logger.debug('Initializing admin registry', {
+        component: 'InitializeAdminRegistryModal',
+        userId: publicKey.toString(),
+      });
 
       // Initialize admin registry
       // @ts-ignore
@@ -64,7 +64,7 @@ export function InitializeAdminRegistryModal({
         })
         .rpc();
 
-      console.log('✅ Admin registry initialized:', tx);
+      logger.transaction('admin registry initialized', tx);
       setSuccess(true);
 
       setTimeout(() => {
@@ -79,7 +79,7 @@ export function InitializeAdminRegistryModal({
       // success and let the dashboard reload so it picks up the existing
       // registry.
       if (msg.includes('already in use') || msg.includes('custom program error: 0x0')) {
-        console.log('ℹ️ Admin registry already exists — loading dashboard.');
+        logger.info('Admin registry already exists', { component: 'InitializeAdminRegistryModal' });
         setSuccess(true);
 
         setTimeout(() => {
@@ -92,7 +92,7 @@ export function InitializeAdminRegistryModal({
       if (msg.includes('insufficient')) {
         setError('Insufficient SOL. Please get more SOL from a faucet.');
       } else {
-        console.error('❌ Error initializing admin registry:', error);
+        logger.error('Failed to initialize admin registry', error, { component: 'InitializeAdminRegistryModal' });
         setError(msg || 'Failed to initialize admin registry');
       }
     } finally {

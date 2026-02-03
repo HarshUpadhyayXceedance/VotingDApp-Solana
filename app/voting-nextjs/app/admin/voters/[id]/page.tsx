@@ -5,6 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
 import { getAdminRegistryPda, getAdminPda, getVoterRegistrationPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import { parseElectionStatus, VoterRegistrationType, parseVoterRegistrationType, RegistrationStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,7 +135,7 @@ export default function ElectionVotersPage() {
         setFilteredVoters(votersData);
       }
     } catch (error: any) {
-      console.error('Error fetching data:', error);
+      logger.error('Failed to fetch voter data', error);
       setError('Failed to load election data');
     } finally {
       setLoading(false);
@@ -190,10 +191,10 @@ export default function ElectionVotersPage() {
         })
         .rpc();
 
-      console.log('✅ Voter approved:', tx);
+      logger.transaction('voter approved', tx);
       fetchData();
     } catch (error: any) {
-      console.error('❌ Error approving voter:', error);
+      logger.error('Failed to approve voter', error);
       alert(error.message || 'Failed to approve voter');
     }
   };
@@ -220,10 +221,10 @@ export default function ElectionVotersPage() {
         })
         .rpc();
 
-      console.log('✅ Voter rejected:', tx);
+      logger.transaction('voter rejected', tx);
       fetchData();
     } catch (error: any) {
-      console.error('❌ Error rejecting voter:', error);
+      logger.error('Failed to reject voter', error);
       alert(error.message || 'Failed to reject voter');
     }
   };
@@ -252,10 +253,10 @@ export default function ElectionVotersPage() {
         })
         .rpc();
 
-      console.log('✅ Voter revoked:', tx);
+      logger.transaction('voter revoked', tx);
       fetchData();
     } catch (error: any) {
-      console.error('❌ Error revoking voter:', error);
+      logger.error('Failed to revoke voter', error);
       alert(error.message || 'Failed to revoke voter');
     }
   };
@@ -266,8 +267,8 @@ export default function ElectionVotersPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-            <p className="text-gray-400">Please connect your wallet</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Wallet Not Connected</h2>
+            <p className="text-slate-600 dark:text-gray-400">Please connect your wallet</p>
           </div>
         </div>
       </AppLayout>
@@ -279,8 +280,8 @@ export default function ElectionVotersPage() {
       <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-gray-400">Loading voter data...</p>
+            <div className="w-12 h-12 border-4 border-violet-500/30 dark:border-purple-500/30 border-t-violet-500 dark:border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-slate-600 dark:text-gray-400">Loading voter data...</p>
           </div>
         </div>
       </AppLayout>
@@ -293,8 +294,8 @@ export default function ElectionVotersPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Error</h2>
-            <p className="text-gray-400">{error || 'Election not found'}</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Error</h2>
+            <p className="text-slate-600 dark:text-gray-400">{error || 'Election not found'}</p>
             <Link href="/admin/voters">
               <Button variant="outline" className="mt-4">
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -322,11 +323,11 @@ export default function ElectionVotersPage() {
         </Link>
 
         {/* Election Header */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-8 mb-8">
+        <div className="bg-white/80 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-lg p-8 mb-8">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
-                <h1 className="text-4xl font-bold">{election.title}</h1>
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-white">{election.title}</h1>
                 <span
                   className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
                     election.voterRegistrationType === VoterRegistrationType.Whitelist
@@ -340,7 +341,7 @@ export default function ElectionVotersPage() {
                 </span>
               </div>
               {election.description && (
-                <p className="text-gray-400 text-lg mb-4">{election.description}</p>
+                <p className="text-slate-600 dark:text-gray-400 text-lg mb-4">{election.description}</p>
               )}
             </div>
           </div>
@@ -350,8 +351,8 @@ export default function ElectionVotersPage() {
           // Open Election Message
           <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-8 text-center">
             <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Open Election</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Open Election</h2>
+            <p className="text-slate-600 dark:text-gray-400 max-w-2xl mx-auto">
               This is an open election. Anyone with a wallet can vote without registration or approval.
               Voter management is not required for open elections.
             </p>
@@ -361,38 +362,38 @@ export default function ElectionVotersPage() {
           <>
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+              <div className="bg-white/80 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm mb-1">Total Voters</p>
-                    <p className="text-3xl font-bold">{voters.length}</p>
+                    <p className="text-slate-600 dark:text-gray-400 text-sm mb-1">Total Voters</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{voters.length}</p>
                   </div>
-                  <Users className="w-12 h-12 text-purple-400 opacity-50" />
+                  <Users className="w-12 h-12 text-violet-400 dark:text-purple-400 opacity-50" />
                 </div>
               </div>
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+              <div className="bg-white/80 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm mb-1">Pending</p>
-                    <p className="text-3xl font-bold">{pendingCount}</p>
+                    <p className="text-slate-600 dark:text-gray-400 text-sm mb-1">Pending</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{pendingCount}</p>
                   </div>
                   <Clock className="w-12 h-12 text-yellow-400 opacity-50" />
                 </div>
               </div>
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+              <div className="bg-white/80 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm mb-1">Approved</p>
-                    <p className="text-3xl font-bold">{approvedCount}</p>
+                    <p className="text-slate-600 dark:text-gray-400 text-sm mb-1">Approved</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{approvedCount}</p>
                   </div>
                   <UserCheck className="w-12 h-12 text-green-400 opacity-50" />
                 </div>
               </div>
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+              <div className="bg-white/80 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm mb-1">Rejected</p>
-                    <p className="text-3xl font-bold">{rejectedCount}</p>
+                    <p className="text-slate-600 dark:text-gray-400 text-sm mb-1">Rejected</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{rejectedCount}</p>
                   </div>
                   <UserX className="w-12 h-12 text-red-400 opacity-50" />
                 </div>
@@ -400,10 +401,10 @@ export default function ElectionVotersPage() {
             </div>
 
             {/* Voters List */}
-            <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
-              <div className="p-6 border-b border-gray-700">
+            <div className="bg-white/80 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="p-6 border-b border-slate-200 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">Voter Registrations</h2>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Voter Registrations</h2>
                   <Button
                     onClick={() => setShowAddVoterModal(true)}
                     className="bg-gradient-to-r from-blue-500 to-blue-600"
@@ -417,17 +418,17 @@ export default function ElectionVotersPage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="flex-1">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-gray-400" />
                       <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search by wallet address..."
-                        className="pl-10 bg-gray-800 border-gray-700 text-white"
+                        className="pl-10 bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white"
                       />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Filter className="w-5 h-5 text-gray-400" />
+                    <Filter className="w-5 h-5 text-slate-400 dark:text-gray-400" />
                     <Button
                       onClick={() => setStatusFilter('all')}
                       variant={statusFilter === 'all' ? 'default' : 'outline'}
@@ -462,8 +463,8 @@ export default function ElectionVotersPage() {
 
               {filteredVoters.length === 0 ? (
                 <div className="p-8 text-center">
-                  <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400 mb-4">
+                  <Users className="w-12 h-12 text-slate-400 dark:text-gray-600 mx-auto mb-4" />
+                  <p className="text-slate-600 dark:text-gray-400 mb-4">
                     {voters.length === 0
                       ? 'No voter registrations yet'
                       : 'No voters match your filters'}
@@ -475,13 +476,13 @@ export default function ElectionVotersPage() {
                   )}
                 </div>
               ) : (
-                <div className="divide-y divide-gray-700">
+                <div className="divide-y divide-slate-200 dark:divide-gray-700">
                   {filteredVoters.map((voter) => (
-                    <div key={voter.publicKey} className="p-6 hover:bg-gray-800/30 transition-colors">
+                    <div key={voter.publicKey} className="p-6 hover:bg-slate-100 dark:hover:bg-gray-800/30 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0 mr-4">
                           <div className="flex items-center gap-3 mb-2">
-                            <p className="text-sm font-mono text-white truncate">
+                            <p className="text-sm font-mono text-slate-900 dark:text-white truncate">
                               {voter.voter}
                             </p>
                             <span
@@ -498,7 +499,7 @@ export default function ElectionVotersPage() {
                               {voter.status}
                             </span>
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-slate-500 dark:text-gray-400">
                             Requested: {new Date(voter.requestedAt * 1000).toLocaleString()}
                             {voter.approvedAt && (
                               <> • Approved: {new Date(voter.approvedAt * 1000).toLocaleString()}</>

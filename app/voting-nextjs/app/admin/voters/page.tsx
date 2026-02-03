@@ -5,6 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
 import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import { parseElectionStatus, VoterRegistrationType, parseVoterRegistrationType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/shared/AppLayout';
@@ -36,7 +37,7 @@ export default function VotersPage() {
         // @ts-ignore
         adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
       } catch (e: any) {
-        console.error('Error fetching admin registry:', e);
+        logger.error('Failed to fetch admin registry', e);
         setError('Failed to connect to the program.');
         setLoading(false);
         return;
@@ -80,7 +81,7 @@ export default function VotersPage() {
             ]);
             registrations = voterRegs;
           } catch (e) {
-            console.error('Error fetching registrations:', e);
+            logger.error('Failed to fetch registrations', e);
           }
 
           return {
@@ -115,7 +116,7 @@ export default function VotersPage() {
       electionsData.sort((a: any, b: any) => b.electionId - a.electionId);
       setElections(electionsData);
     } catch (error: any) {
-      console.error('Error fetching data:', error);
+      logger.error('Failed to fetch voters data', error);
       setError('Failed to load elections');
     } finally {
       setLoading(false);
@@ -132,8 +133,8 @@ export default function VotersPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Wallet Not Connected</h2>
-            <p className="text-gray-400">Please connect your wallet</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Wallet Not Connected</h2>
+            <p className="text-slate-600 dark:text-gray-400">Please connect your wallet</p>
           </div>
         </div>
       </AppLayout>
@@ -146,8 +147,8 @@ export default function VotersPage() {
       <AppLayout showFooter={false}>
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-gray-400">Checking permissions...</p>
+            <div className="w-8 h-8 border-4 border-violet-500/30 dark:border-purple-500/30 border-t-violet-500 dark:border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-slate-600 dark:text-gray-400">Checking permissions...</p>
           </div>
         </div>
       </AppLayout>
@@ -161,8 +162,8 @@ export default function VotersPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
-            <p className="text-gray-400">You don't have permission to manage voters</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Access Denied</h2>
+            <p className="text-slate-600 dark:text-gray-400">You don't have permission to manage voters</p>
           </div>
         </div>
       </AppLayout>
@@ -173,39 +174,39 @@ export default function VotersPage() {
     <AppLayout sidebar={<AdminSidebar isSuperAdmin={isSuperAdmin} />} showFooter={false}>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Voter Management</h1>
-          <p className="text-gray-400">
+          <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Voter Management</h1>
+          <p className="text-slate-600 dark:text-gray-400">
             Manage voter registrations and permissions for elections
           </p>
         </div>
 
         {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+          <div className="bg-white/80 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm mb-1">Total Elections</p>
-                <p className="text-3xl font-bold">{elections.length}</p>
+                <p className="text-slate-600 dark:text-gray-400 text-sm mb-1">Total Elections</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">{elections.length}</p>
               </div>
-              <Users className="w-12 h-12 text-purple-400 opacity-50" />
+              <Users className="w-12 h-12 text-violet-400 dark:text-purple-400 opacity-50" />
             </div>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+          <div className="bg-white/80 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm mb-1">Whitelist Elections</p>
-                <p className="text-3xl font-bold">
+                <p className="text-slate-600 dark:text-gray-400 text-sm mb-1">Whitelist Elections</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">
                   {elections.filter(e => e.voterRegistrationType === VoterRegistrationType.Whitelist).length}
                 </p>
               </div>
               <UserCheck className="w-12 h-12 text-blue-400 opacity-50" />
             </div>
           </div>
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+          <div className="bg-white/80 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm mb-1">Pending Requests</p>
-                <p className="text-3xl font-bold">
+                <p className="text-slate-600 dark:text-gray-400 text-sm mb-1">Pending Requests</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">
                   {elections.reduce((sum, e) => sum + e.pendingCount, 0)}
                 </p>
               </div>
@@ -215,15 +216,15 @@ export default function VotersPage() {
         </div>
 
         {/* Elections List */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
-          <div className="p-6 border-b border-gray-700">
-            <h2 className="text-2xl font-bold">Elections</h2>
+        <div className="bg-white/80 dark:bg-gray-800/50 border border-slate-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="p-6 border-b border-slate-200 dark:border-gray-700">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Elections</h2>
           </div>
 
           {loading ? (
             <div className="p-8 text-center">
-              <div className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto" />
-              <p className="text-gray-400 mt-4">Loading elections...</p>
+              <div className="w-8 h-8 border-4 border-violet-500/30 dark:border-purple-500/30 border-t-violet-500 dark:border-t-purple-500 rounded-full animate-spin mx-auto" />
+              <p className="text-slate-600 dark:text-gray-400 mt-4">Loading elections...</p>
             </div>
           ) : error ? (
             <div className="p-8 text-center">
@@ -232,17 +233,17 @@ export default function VotersPage() {
             </div>
           ) : elections.length === 0 ? (
             <div className="p-8 text-center">
-              <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">No elections found</p>
+              <Users className="w-12 h-12 text-slate-400 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-slate-600 dark:text-gray-400">No elections found</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-700">
+            <div className="divide-y divide-slate-200 dark:divide-gray-700">
               {elections.map((election) => (
-                <div key={election.publicKey} className="p-6 hover:bg-gray-800/30 transition-colors">
+                <div key={election.publicKey} className="p-6 hover:bg-slate-100 dark:hover:bg-gray-800/30 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold text-white">{election.title}</h3>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{election.title}</h3>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold ${
                             election.voterRegistrationType === VoterRegistrationType.Whitelist
@@ -255,8 +256,8 @@ export default function VotersPage() {
                             : 'Open'}
                         </span>
                       </div>
-                      
-                      <div className="flex items-center gap-6 text-sm text-gray-400">
+
+                      <div className="flex items-center gap-6 text-sm text-slate-600 dark:text-gray-400">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4" />
                           <span>{election.registrationsCount} Registered</span>
@@ -279,7 +280,7 @@ export default function VotersPage() {
                     <Link href={`/admin/voters/${election.publicKey}`}>
                       <Button
                         variant="outline"
-                        className="border-gray-600 hover:border-purple-500"
+                        className="border-slate-300 dark:border-gray-600 hover:border-violet-500 dark:hover:border-purple-500"
                       >
                         <Users className="w-4 h-4 mr-2" />
                         Manage Voters

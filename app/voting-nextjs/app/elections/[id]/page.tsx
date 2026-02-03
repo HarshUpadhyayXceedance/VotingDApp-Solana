@@ -18,6 +18,7 @@ import {
   getTimeRemaining,
 } from '@/lib/election-utils';
 import { getVoterRegistrationPda, getVoteRecordPda, getAdminRegistryPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { VoterSidebar } from '@/components/shared/VoterSidebar';
@@ -164,7 +165,7 @@ export default function VoterElectionDetailPage() {
         }
       }
     } catch (err: any) {
-      console.error('Error fetching election detail:', err);
+      logger.error('Failed to fetch election detail', err, { electionId: id });
       setError('Failed to load election');
     } finally {
       setLoading(false);
@@ -182,11 +183,10 @@ export default function VoterElectionDetailPage() {
     setVoteError('');
 
     try {
-      console.log('🗳️ Starting vote casting process...');
+      logger.debug('Starting vote casting process', { electionId, candidateId: selectedCandidate });
 
       // Check wallet balance before attempting — new PDA accounts require rent-exemption funding
       const balance = await connection.getBalance(publicKey);
-      console.log('💰 Wallet balance:', balance / 1e9, 'SOL');
 
       if (balance < 1_000_000) {
         // Less than 0.001 SOL — almost certainly unfunded
@@ -200,13 +200,6 @@ export default function VoterElectionDetailPage() {
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [voteRecordPda] = getVoteRecordPda(electionPubkey, publicKey, program.programId);
 
-      console.log('📋 Account PDAs:');
-      console.log('  Admin Registry:', adminRegistryPda.toString());
-      console.log('  Election:', electionPubkey.toString());
-      console.log('  Candidate:', candidatePubkey.toString());
-      console.log('  Vote Record:', voteRecordPda.toString());
-      console.log('  Voter:', publicKey.toString());
-
       // Determine voter registration account
       // For Whitelist elections: use the actual voter registration PDA
       // For Open elections: use PublicKey.default (account not checked by contract)
@@ -214,10 +207,8 @@ export default function VoterElectionDetailPage() {
       if (election.voterRegistrationType === VoterRegistrationType.Whitelist) {
         const [voterRegPda] = getVoterRegistrationPda(electionPubkey, publicKey, program.programId);
         voterRegistrationAccount = voterRegPda;
-        console.log('✅ Whitelist election - using voter registration PDA:', voterRegPda.toString());
       } else {
         voterRegistrationAccount = PublicKey.default;
-        console.log('✅ Open election - using PublicKey.default for voter registration');
       }
 
       const accounts: any = {
@@ -230,7 +221,6 @@ export default function VoterElectionDetailPage() {
         systemProgram: SystemProgram.programId,
       };
 
-      console.log('🔨 Building cast vote instruction...');
       // Build transaction explicitly so wallet adapter funds the new PDA properly
       // @ts-ignore
       const castVoteInstruction = await program.methods
@@ -238,10 +228,7 @@ export default function VoterElectionDetailPage() {
         .accounts(accounts)
         .instruction();
 
-      console.log('✅ Instruction built successfully');
-
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-      console.log('📦 Latest blockhash:', blockhash);
 
       const transaction = new Transaction({
         recentBlockhash: blockhash,
@@ -256,28 +243,16 @@ export default function VoterElectionDetailPage() {
       );
       transaction.add(castVoteInstruction);
 
-      console.log('📤 Sending transaction to wallet for signing...');
-      console.log('Transaction details:', {
-        instructions: transaction.instructions.length,
-        feePayer: transaction.feePayer?.toString(),
-        recentBlockhash: transaction.recentBlockhash,
-      });
-
       // Simulate transaction first to get detailed error if any
-      console.log('🔍 Simulating transaction before sending...');
       try {
         const simulationResult = await connection.simulateTransaction(transaction);
-        console.log('📊 Simulation result:', simulationResult);
 
         if (simulationResult.value.err) {
-          console.error('❌ Simulation failed:', simulationResult.value.err);
-          console.error('📋 Simulation logs:', simulationResult.value.logs);
+          logger.error('Transaction simulation failed', simulationResult.value.err, { electionId });
           throw new Error(`Transaction simulation failed: ${JSON.stringify(simulationResult.value.err)}`);
         }
-
-        console.log('✅ Simulation successful!');
       } catch (simErr: any) {
-        console.error('❌ Simulation error:', simErr);
+        logger.error('Simulation error', simErr, { electionId });
         throw simErr;
       }
 
@@ -285,9 +260,6 @@ export default function VoterElectionDetailPage() {
         skipPreflight: false,
         preflightCommitment: 'confirmed',
       });
-
-      console.log('✅ Transaction sent:', tx);
-      console.log('⏳ Confirming transaction (this may take a while on devnet)...');
 
       // Try to confirm, but if it times out, check if vote was actually recorded
       let voteSucceeded = false;
@@ -303,10 +275,10 @@ export default function VoterElectionDetailPage() {
         }
 
         voteSucceeded = true;
-        console.log('✅ Vote confirmed:', tx);
+        logger.transaction('vote confirmed', tx, { electionId });
       } catch (confirmErr: any) {
         // Confirmation timed out - check if vote was actually recorded
-        console.log('⚠️ Confirmation timed out, checking if vote was recorded...');
+        logger.warn('Confirmation timed out, checking if vote was recorded', { electionId });
 
         try {
           // Check if vote record exists
@@ -314,7 +286,7 @@ export default function VoterElectionDetailPage() {
           const voteRecord = await program.account.voteRecord.fetch(voteRecordPda);
           if (voteRecord && voteRecord.voter.toString() === publicKey.toString()) {
             voteSucceeded = true;
-            console.log('✅ Vote was recorded successfully despite timeout!');
+            logger.info('Vote was recorded successfully despite timeout', { electionId });
           }
         } catch (fetchErr) {
           // Vote record doesn't exist, transaction actually failed
@@ -337,14 +309,7 @@ export default function VoterElectionDetailPage() {
       // Refresh data
       await fetchData();
     } catch (err: any) {
-      console.error('❌ Vote error:', err);
-      console.error('Error details:', {
-        name: err.name,
-        message: err.message,
-        code: err.code,
-        logs: err.logs,
-        stack: err.stack,
-      });
+      logger.error('Vote failed', err, { electionId, candidateId: selectedCandidate });
 
       let msg = 'Failed to cast vote';
       if (err.message?.includes('AlreadyVoted')) msg = 'You have already voted in this election';
@@ -414,11 +379,11 @@ export default function VoterElectionDetailPage() {
       });
       await connection.confirmTransaction(tx, 'finalized');
 
-      console.log('✅ Registration requested:', tx);
+      logger.transaction('registration requested', tx, { electionId });
       setRegistrationStatus(RegistrationStatus.Pending);
       await fetchData();
     } catch (err: any) {
-      console.error('❌ Registration error:', err);
+      logger.error('Registration failed', err, { electionId });
       let msg = 'Failed to request registration';
       if (err.message?.includes('AlreadyRegistered') || err.message?.includes('already in use'))
         msg = 'You are already registered for this election';

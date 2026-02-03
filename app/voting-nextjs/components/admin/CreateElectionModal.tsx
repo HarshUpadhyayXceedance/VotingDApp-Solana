@@ -10,10 +10,9 @@ import {
   getAdminRegistryPda,
   getAdminPda,
   getElectionPda,
-  getCurrentTimestamp,
-  VoterRegistrationType,
 } from '@/lib/helpers';
 import { MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH } from '@/lib/constants';
+import { logger } from '@/lib/logger';
 import {
   Dialog,
   DialogContent,
@@ -65,9 +64,11 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [adminPda] = getAdminPda(publicKey, program.programId);
 
-      console.log('Adding self as admin...');
-      console.log('Super Admin:', publicKey.toString());
-      console.log('Admin PDA:', adminPda.toString());
+      logger.debug('Adding self as admin', {
+        component: 'CreateElectionModal',
+        action: 'addSelfAsAdmin',
+        userId: publicKey.toString(),
+      });
 
       // @ts-ignore
       const tx = await program.methods
@@ -86,7 +87,7 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         })
         .rpc();
 
-      console.log('✅ Admin added:', tx);
+      logger.transaction('admin added', tx);
       setNeedsAdminSetup(false);
       setError('');
       
@@ -94,7 +95,7 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         setSettingUpAdmin(false);
       }, 1000);
     } catch (error: any) {
-      console.error('❌ Error adding admin:', error);
+      logger.error('Failed to add admin', error, { component: 'CreateElectionModal' });
       setSettingUpAdmin(false);
       
       let errorMsg = 'Failed to add admin account';
@@ -125,9 +126,11 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
 
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
 
-      console.log('Initializing admin registry...');
-      console.log('Super Admin:', publicKey.toString());
-      console.log('Admin Registry PDA:', adminRegistryPda.toString());
+      logger.debug('Initializing admin registry', {
+        component: 'CreateElectionModal',
+        action: 'initializeRegistry',
+        userId: publicKey.toString(),
+      });
 
       // @ts-ignore
       const tx = await program.methods
@@ -139,7 +142,7 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         })
         .rpc();
 
-      console.log('✅ Admin registry initialized:', tx);
+      logger.transaction('admin registry initialized', tx);
       setNeedsRegistryInit(false);
       setError('');
       
@@ -149,7 +152,7 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         setNeedsAdminSetup(true);
       }, 1000);
     } catch (error: any) {
-      console.error('❌ Error initializing registry:', error);
+      logger.error('Failed to initialize registry', error, { component: 'CreateElectionModal' });
       setInitializingRegistry(false);
       
       let errorMsg = 'Failed to initialize admin registry';
@@ -207,19 +210,19 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [adminPda] = getAdminPda(publicKey, program.programId);
 
-      console.log('Creating election...');
-      console.log('Authority:', publicKey.toString());
-      console.log('Admin PDA:', adminPda.toString());
-      console.log('Admin Registry PDA:', adminRegistryPda.toString());
+      logger.debug('Creating election', {
+        component: 'CreateElectionModal',
+        action: 'createElection',
+        userId: publicKey.toString(),
+      });
 
       // Check if admin registry exists
       let adminRegistry: any;
       try {
         // @ts-ignore
         adminRegistry = await program.account.adminRegistry.fetch(adminRegistryPda);
-        console.log('✅ Admin registry exists, election_count:', adminRegistry.electionCount.toNumber());
       } catch (e) {
-        console.log('❌ Admin registry not found');
+        logger.debug('Admin registry not found', { component: 'CreateElectionModal' });
         setNeedsRegistryInit(true);
         setError('Admin registry not initialized. Click "Initialize Registry" to continue.');
         setLoading(false);
@@ -230,9 +233,8 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
       try {
         // @ts-ignore
         await program.account.admin.fetch(adminPda);
-        console.log('✅ Admin account exists');
       } catch (e) {
-        console.log('❌ Admin account not found');
+        logger.debug('Admin account not found', { component: 'CreateElectionModal' });
         setNeedsAdminSetup(true);
         setError('Admin account not initialized. Click "Setup Admin Account" to continue.');
         setLoading(false);
@@ -242,9 +244,6 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
       // Get election ID (current election_count)
       const electionId = adminRegistry.electionCount.toNumber();
       const [electionPda] = getElectionPda(electionId, program.programId);
-
-      console.log('Election ID:', electionId);
-      console.log('Election PDA:', electionPda.toString());
 
       // Convert voter registration type to the format expected by Anchor
       const voterRegType = voterRegistrationType === 'open' 
@@ -270,8 +269,7 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         })
         .rpc();
 
-      console.log('✅ Election created:', tx);
-      console.log('Election PDA:', electionPda.toString());
+      logger.transaction('election created', tx, { electionId: electionPda.toString() });
       
       setSuccess(true);
       
@@ -286,7 +284,7 @@ export function CreateElectionModal({ open, onClose, onSuccess }: CreateElection
         onSuccess();
       }, 1500);
     } catch (error: any) {
-      console.error('❌ Error creating election:', error);
+      logger.error('Failed to create election', error, { component: 'CreateElectionModal' });
       
       let errorMsg = 'Failed to create election';
       

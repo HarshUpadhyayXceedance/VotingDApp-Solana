@@ -14,6 +14,7 @@ import {
   getElectionStatusColor,
 } from '@/lib/election-utils';
 import { getVoteRecordPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { VoterSidebar } from '@/components/shared/VoterSidebar';
@@ -147,7 +148,7 @@ export default function MyVotesPage() {
       records.sort((a, b) => b.votedAt - a.votedAt);
       setVoteRecords(records);
     } catch (err: any) {
-      console.error('Error fetching vote records:', err);
+      logger.error('Failed to fetch vote records', err);
       setError('Failed to load your votes');
     } finally {
       setLoading(false);

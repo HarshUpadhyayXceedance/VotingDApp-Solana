@@ -5,6 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
 import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import { parseElectionStatus } from '@/lib/types';
 import {
   getElectionStatusLabel,
@@ -112,7 +113,7 @@ export default function ElectionDetailPage() {
 
       setCandidates(candidatesData);
     } catch (error: any) {
-      console.error('Error fetching election:', error);
+      logger.error('Failed to fetch election', error);
       setError('Failed to load election data');
     } finally {
       setLoading(false);
@@ -167,10 +168,10 @@ export default function ElectionDetailPage() {
           .rpc();
       }
 
-      console.log(`✅ Election ${action}ed:`, tx);
+      logger.transaction(`election ${action}ed`, tx, { electionId });
       fetchElectionData();
     } catch (error: any) {
-      console.error(`❌ Error ${action}ing election:`, error);
+      logger.error(`Failed to ${action} election`, error, { electionId });
       alert(error.message || `Failed to ${action} election`);
     }
   };
@@ -198,10 +199,10 @@ export default function ElectionDetailPage() {
         })
         .rpc();
 
-      console.log('✅ Candidate removed:', tx);
+      logger.transaction('candidate removed', tx, { electionId });
       fetchElectionData();
     } catch (error: any) {
-      console.error('❌ Error removing candidate:', error);
+      logger.error('Failed to remove candidate', error, { electionId });
       alert(error.message || 'Failed to remove candidate');
     }
   };

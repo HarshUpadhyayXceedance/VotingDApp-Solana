@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
 import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import { usePathname } from 'next/navigation';
 
 export function Navbar() {
@@ -67,7 +68,7 @@ export function Navbar() {
           setIsAdmin(false);
         }
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        logger.error('Failed to check admin status', error);
         setIsAdmin(false);
         setIsSuperAdmin(false);
       }

@@ -5,6 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
 import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import { ElectionStatus, parseElectionStatus } from '@/lib/types';
 import {
   getElectionStatusLabel,
@@ -183,7 +184,7 @@ export default function ResultsPage() {
       electionResults.sort((a, b) => b.electionId - a.electionId);
       setResults(electionResults);
     } catch (err: any) {
-      console.error('Error fetching results:', err);
+      logger.error('Failed to fetch results', err);
       setError('Failed to load election results');
     } finally {
       setLoading(false);

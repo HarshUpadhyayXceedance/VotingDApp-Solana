@@ -13,6 +13,7 @@ import {
   isVotingOpen,
 } from '@/lib/election-utils';
 import { getVoterRegistrationPda, getVoteRecordPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { VoterSidebar } from '@/components/shared/VoterSidebar';
@@ -136,7 +137,7 @@ export default function VoterElectionsPage() {
       setElections(enriched);
       setPendingRegCount(enriched.filter(e => e.registrationStatus === RegistrationStatus.Pending).length);
     } catch (err: any) {
-      console.error('Error fetching elections:', err);
+      logger.error('Failed to fetch elections', err);
       setError('Failed to load elections');
     } finally {
       setLoading(false);

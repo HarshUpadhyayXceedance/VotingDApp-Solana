@@ -4,14 +4,14 @@ import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
-import { ADMIN_SEED } from '@/lib/constants';
-import { ElectionStatus } from '@/lib/types';
+import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
 import {
   canStartElection,
   canEndElection,
   canCancelElection,
   canFinalizeElection,
 } from '@/lib/election-utils';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Play, StopCircle, XCircle, CheckCircle, Loader2 } from 'lucide-react';
 
@@ -38,16 +38,8 @@ export function ElectionLifecycleControls({
       setError('');
 
       const electionPubkey = new PublicKey(election.publicKey);
-
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      const [adminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
 
       // @ts-ignore
       const tx = await program.methods
@@ -60,10 +52,10 @@ export function ElectionLifecycleControls({
         })
         .rpc();
 
-      console.log('✅ Election started:', tx);
+      logger.transaction('election started', tx, { electionId: election.publicKey });
       onStatusChange();
     } catch (error: any) {
-      console.error('❌ Error starting election:', error);
+      logger.error('Failed to start election', error, { electionId: election.publicKey });
       setError(error.message || 'Failed to start election');
     } finally {
       setLoading(null);
@@ -78,16 +70,8 @@ export function ElectionLifecycleControls({
       setError('');
 
       const electionPubkey = new PublicKey(election.publicKey);
-
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      const [adminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
 
       // @ts-ignore
       const tx = await program.methods
@@ -100,10 +84,10 @@ export function ElectionLifecycleControls({
         })
         .rpc();
 
-      console.log('✅ Election ended:', tx);
+      logger.transaction('election ended', tx, { electionId: election.publicKey });
       onStatusChange();
     } catch (error: any) {
-      console.error('❌ Error ending election:', error);
+      logger.error('Failed to end election', error, { electionId: election.publicKey });
       setError(error.message || 'Failed to end election');
     } finally {
       setLoading(null);
@@ -121,16 +105,8 @@ export function ElectionLifecycleControls({
       setError('');
 
       const electionPubkey = new PublicKey(election.publicKey);
-
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      const [adminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
 
       // @ts-ignore
       const tx = await program.methods
@@ -143,10 +119,10 @@ export function ElectionLifecycleControls({
         })
         .rpc();
 
-      console.log('✅ Election cancelled:', tx);
+      logger.transaction('election cancelled', tx, { electionId: election.publicKey });
       onStatusChange();
     } catch (error: any) {
-      console.error('❌ Error cancelling election:', error);
+      logger.error('Failed to cancel election', error, { electionId: election.publicKey });
       setError(error.message || 'Failed to cancel election');
     } finally {
       setLoading(null);
@@ -161,16 +137,8 @@ export function ElectionLifecycleControls({
       setError('');
 
       const electionPubkey = new PublicKey(election.publicKey);
-
-      const [adminRegistryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('admin_registry')],
-        program.programId
-      );
-
-      const [adminPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from(ADMIN_SEED), publicKey.toBuffer()],
-        program.programId
-      );
+      const [adminRegistryPda] = getAdminRegistryPda(program.programId);
+      const [adminPda] = getAdminPda(publicKey, program.programId);
 
       // @ts-ignore
       const tx = await program.methods
@@ -183,10 +151,10 @@ export function ElectionLifecycleControls({
         })
         .rpc();
 
-      console.log('✅ Election finalized:', tx);
+      logger.transaction('election finalized', tx, { electionId: election.publicKey });
       onStatusChange();
     } catch (error: any) {
-      console.error('❌ Error finalizing election:', error);
+      logger.error('Failed to finalize election', error, { electionId: election.publicKey });
       setError(error.message || 'Failed to finalize election');
     } finally {
       setLoading(null);

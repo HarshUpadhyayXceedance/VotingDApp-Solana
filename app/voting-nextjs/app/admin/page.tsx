@@ -6,6 +6,7 @@ import { useProgram } from '@/hooks/useProgram';
 import { PublicKey } from '@solana/web3.js';
 import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
 import { ElectionStatus, parseElectionStatus } from '@/lib/types';
+import { logger, isAccountNotFoundError } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
@@ -57,7 +58,7 @@ export default function AdminDashboard() {
           return;
         }
 
-        console.error('Error fetching admin registry:', e);
+        logger.error('Failed to fetch admin registry', e);
         setError('Failed to connect to the program.');
         setLoading(false);
         return;
@@ -101,7 +102,7 @@ export default function AdminDashboard() {
       electionsData.sort((a: any, b: any) => b.electionId - a.electionId);
       setAllElections(electionsData);
     } catch (error: any) {
-      console.error('Error fetching data:', error);
+      logger.error('Failed to load elections', error);
       setError('Failed to load elections');
     } finally {
       setLoading(false);
@@ -131,10 +132,10 @@ export default function AdminDashboard() {
         })
         .rpc();
 
-      console.log('✅ Election started:', tx);
+      logger.transaction('election started', tx, { electionId: electionPublicKey });
       fetchData();
     } catch (error: any) {
-      console.error('❌ Error starting election:', error);
+      logger.error('Failed to start election', error, { electionId: electionPublicKey });
       alert(error.message || 'Failed to start election');
     }
   };
@@ -158,10 +159,10 @@ export default function AdminDashboard() {
         })
         .rpc();
 
-      console.log('✅ Election ended:', tx);
+      logger.transaction('election ended', tx, { electionId: electionPublicKey });
       fetchData();
     } catch (error: any) {
-      console.error('❌ Error ending election:', error);
+      logger.error('Failed to end election', error, { electionId: electionPublicKey });
       alert(error.message || 'Failed to end election');
     }
   };
@@ -185,10 +186,10 @@ export default function AdminDashboard() {
         })
         .rpc();
 
-      console.log('✅ Election finalized:', tx);
+      logger.transaction('election finalized', tx, { electionId: electionPublicKey });
       fetchData();
     } catch (error: any) {
-      console.error('❌ Error finalizing election:', error);
+      logger.error('Failed to finalize election', error, { electionId: electionPublicKey });
       alert(error.message || 'Failed to finalize election');
     }
   };

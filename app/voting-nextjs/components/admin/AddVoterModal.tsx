@@ -9,6 +9,7 @@ import {
   getAdminPda,
   getVoterRegistrationPda,
 } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import {
   Dialog,
   DialogContent,
@@ -97,10 +98,10 @@ export function AddVoterModal({
         program.programId
       );
 
-      console.log('Manually adding voter...');
-      console.log('Election:', electionPubkey.toString());
-      console.log('Voter:', voterPubkey.toString());
-      console.log('Voter Reg PDA:', voterRegPda.toString());
+      logger.debug('Adding voter', {
+        component: 'AddVoterModal',
+        electionId: electionPubkey.toString(),
+      });
 
       // Use the new add_voter_directly instruction (one transaction instead of two!)
       // This allows super admin or admins with can_manage_voters permission to add voters directly
@@ -124,7 +125,7 @@ export function AddVoterModal({
         ])
         .rpc();
 
-      console.log('✅ Voter added directly:', tx);
+      logger.transaction('voter added', tx);
 
       setMode('success-manual');
 
@@ -133,7 +134,7 @@ export function AddVoterModal({
         onSuccess();
       }, 1500);
     } catch (error: any) {
-      console.error('❌ Error manually adding voter:', error);
+      logger.error('Failed to add voter', error, { component: 'AddVoterModal' });
 
       let errorMsg = 'Failed to add voter';
 

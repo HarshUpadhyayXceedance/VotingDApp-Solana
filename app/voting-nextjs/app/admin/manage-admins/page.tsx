@@ -5,6 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useProgram } from '@/hooks/useProgram';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { getAdminRegistryPda, getAdminPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import { SUPER_ADMIN } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,23 +78,12 @@ export default function ManageAdminsPage() {
           const account = await program.account.admin.fetch(superAdminPda);
           setSuperAdminHasAccount(true);
 
-          // Debug: Log the entire account structure
-          console.log('🔍 Full admin account:', JSON.stringify(account, null, 2));
-
           // Check permissions - use camelCase (Anchor auto-converts from Rust snake_case)
           const p = account.permissions;
-          console.log('📋 Permissions object:', p);
-          console.log('📋 Individual permissions:', {
-            canManageElections: p?.canManageElections,
-            canManageCandidates: p?.canManageCandidates,
-            canManageVoters: p?.canManageVoters,
-            canFinalizeResults: p?.canFinalizeResults,
-          });
           const isOk = p?.canManageElections && p?.canManageCandidates && p?.canManageVoters && p?.canFinalizeResults;
-          console.log('✅ Permissions OK:', isOk);
           setSuperAdminPermissionsOk(!!isOk);
         } catch (e) {
-          console.log('❌ No admin account found');
+          logger.debug('No admin account found for super admin');
           setSuperAdminHasAccount(false);
           setSuperAdminPermissionsOk(false);
         }
@@ -113,7 +103,7 @@ export default function ManageAdminsPage() {
 
       setAdmins(adminsData);
     } catch (error: any) {
-      console.error('Error fetching admins:', error);
+      logger.error('Failed to fetch admins', error);
       setError('Failed to load admins. Make sure admin registry is initialized.');
     } finally {
       setLoading(false);
@@ -136,7 +126,7 @@ export default function ManageAdminsPage() {
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [adminPda] = getAdminPda(publicKey, program.programId);
 
-      console.log('🔧 Repairing admin permissions...');
+      logger.debug('Repairing admin permissions', { component: 'ManageAdmins' });
 
       // Use camelCase for JavaScript - Anchor auto-converts to snake_case for Rust
       const fullPermissions = {
@@ -156,14 +146,11 @@ export default function ManageAdminsPage() {
         })
         .rpc();
 
-      console.log('✅ Transaction sent:', tx);
-      console.log('⏳ Waiting for confirmation and state propagation...');
+      logger.transaction('admin permissions repaired', tx);
 
       // Wait for blockchain to process and propagate the transaction
-      // Localnet is usually fast, but we need to ensure state is updated
       await new Promise(resolve => setTimeout(resolve, 4000));
 
-      console.log('🔄 Fetching fresh permissions from blockchain...');
       // Fetch fresh data from blockchain
       await fetchAdmins();
 
@@ -174,7 +161,7 @@ export default function ManageAdminsPage() {
         setAddSuccess(false);
       }, 2000);
     } catch (error: any) {
-      console.error('❌ Error repairing permissions:', error);
+      logger.error('Failed to repair admin permissions', error);
       setAddError(error.message || 'Failed to repair permissions');
     } finally {
       setAdding(false);
@@ -198,9 +185,7 @@ export default function ManageAdminsPage() {
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [adminPda] = getAdminPda(publicKey, program.programId);
 
-      console.log('➕ Adding self as admin...');
-      console.log('Admin Registry PDA:', adminRegistryPda.toString());
-      console.log('Admin PDA:', adminPda.toString());
+      logger.debug('Adding self as admin', { component: 'ManageAdmins' });
 
       // Use camelCase for JavaScript - Anchor auto-converts to snake_case for Rust
       const fullPermissions = {
@@ -222,13 +207,11 @@ export default function ManageAdminsPage() {
         })
         .rpc();
 
-      console.log('✅ Transaction sent:', tx);
-      console.log('⏳ Waiting for confirmation and state propagation...');
+      logger.transaction('self added as admin', tx);
 
       // Wait for blockchain to process and propagate the transaction
       await new Promise(resolve => setTimeout(resolve, 4000));
 
-      console.log('🔄 Fetching fresh admin account from blockchain...');
       // Fetch fresh data from blockchain
       await fetchAdmins();
 
@@ -239,7 +222,7 @@ export default function ManageAdminsPage() {
         setAddSuccess(false);
       }, 2000);
     } catch (error: any) {
-      console.error('❌ Error adding self as admin:', error);
+      logger.error('Failed to add self as admin', error);
       setAddError(error.message || 'Failed to add self as admin');
     } finally {
       setAdding(false);
@@ -263,12 +246,7 @@ export default function ManageAdminsPage() {
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [newAdminPda] = getAdminPda(newAdminPubkey, program.programId);
 
-      console.log('Adding admin...');
-      console.log('Admin Registry PDA:', adminRegistryPda.toString());
-      console.log('New Admin Address:', newAdminAddress);
-      console.log('New Admin PDA:', newAdminPda.toString());
-      console.log('Name:', newAdminName);
-      console.log('Permissions:', newAdminPermissions);
+      logger.debug('Adding admin', { component: 'ManageAdmins', newAdmin: newAdminAddress });
 
       // @ts-ignore
       const tx = await program.methods
@@ -282,7 +260,7 @@ export default function ManageAdminsPage() {
         })
         .rpc();
 
-      console.log('✅ Admin added:', tx);
+      logger.transaction('admin added', tx);
       setAddSuccess(true);
 
       setTimeout(() => {
@@ -299,7 +277,7 @@ export default function ManageAdminsPage() {
         fetchAdmins();
       }, 1500);
     } catch (error: any) {
-      console.error('❌ Error adding admin:', error);
+      logger.error('Failed to add admin', error);
 
       let errorMsg = 'Failed to add admin';
 
@@ -329,9 +307,7 @@ export default function ManageAdminsPage() {
       const [adminRegistryPda] = getAdminRegistryPda(program.programId);
       const [adminToRemovePda] = getAdminPda(adminPubkey, program.programId);
 
-      console.log('Deactivating admin...');
-      console.log('Admin to remove:', adminAddress);
-      console.log('Admin PDA:', adminToRemovePda.toString());
+      logger.debug('Deactivating admin', { component: 'ManageAdmins', adminAddress });
 
       // @ts-ignore
       const tx = await program.methods
@@ -343,10 +319,10 @@ export default function ManageAdminsPage() {
         })
         .rpc();
 
-      console.log('✅ Admin deactivated:', tx);
+      logger.transaction('admin deactivated', tx);
       fetchAdmins();
     } catch (error: any) {
-      console.error('❌ Error deactivating admin:', error);
+      logger.error('Failed to deactivate admin', error);
       alert(error.message || 'Failed to deactivate admin');
     }
   };

@@ -16,6 +16,7 @@ import {
   getElectionStatusColor,
 } from '@/lib/election-utils';
 import { getAdminRegistryPda, getVoterRegistrationPda } from '@/lib/helpers';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { VoterSidebar } from '@/components/shared/VoterSidebar';
@@ -142,7 +143,7 @@ export default function RegistrationPage() {
       setRegistrations(records);
       setUnregisteredElections(unregistered);
     } catch (err: any) {
-      console.error('Error fetching registrations:', err);
+      logger.error('Failed to fetch registrations', err);
       setError('Failed to load registrations');
     } finally {
       setLoading(false);
@@ -210,7 +211,7 @@ export default function RegistrationPage() {
       });
       await connection.confirmTransaction(tx, 'finalized');
 
-      console.log('✅ Registration requested:', tx);
+      logger.transaction('registration requested', tx);
       setRequestSuccess((prev) => ({ ...prev, [electionPubkeyStr]: true }));
 
       // Refresh after a moment
@@ -218,7 +219,7 @@ export default function RegistrationPage() {
         fetchRegistrations();
       }, 1500);
     } catch (err: any) {
-      console.error('❌ Error requesting registration:', err);
+      logger.error('Registration request failed', err);
       const msg = err.message?.includes('already in use')
         ? 'You have already requested registration for this election.'
         : err.message || 'Failed to request registration';
