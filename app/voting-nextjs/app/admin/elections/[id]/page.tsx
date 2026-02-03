@@ -70,7 +70,9 @@ export default function ElectionDetailPage() {
         if (publicKey) {
           setIsSuperAdmin(publicKey.equals(adminRegistry.superAdmin));
         }
-      } catch {}
+      } catch (err: any) {
+        logger.error('Failed to fetch admin registry', err, { electionId });
+      }
 
       // @ts-ignore
       const electionAccount = await program.account.election.fetch(electionPubkey);
